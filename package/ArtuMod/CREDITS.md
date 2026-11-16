@@ -125,3 +125,9 @@ Icons made by **Lorc** and **Delapouite**. Available on https://game-icons.net.
 
 军威如山状态图标复用已署名的 Lorc / Game-icons.net 的 backup 图形（CC BY 3.0）。对应 `assets/status-icons/armymightpower.png` 与 `assets/ArtuMod/images/status/armymightpower.tres`；沿用现有调色、底板和尺寸转换。完整来源见 `assets/status-icons/来源与对应表.md`。
 
+# v0.4.9-alpha 美术更新（2026-11-17）
+
+- `assets/art-preview/`：OpenAI GPT Image 2（Codex 内置绘图）生成的阿尔图头像和选角图、苏丹牌母图、女术士的牌盒、群龙无首、地图和能量徽记、两个军队状态图标。黄金杀戮全卡背景以已确认的横图为参考扩画。运行图经裁切、缩放后由 `tools/build_art_preview.py` 打包。
+- 安装包中的 `allarmypower.tres` 与 `armymightpower.tres` 使用新生成的三矛与红旗。Game-icons.net 的 backup 登记仍对应基础资源包与历史版本，其余临时状态图标的署名和许可不变。
+- 不重新分发用来查看游戏显示效果的原版截图，不把参考图计作 Mod 新增资源。
+

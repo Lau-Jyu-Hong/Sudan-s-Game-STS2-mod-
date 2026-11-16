@@ -1,6 +1,6 @@
 # 苏丹的游戏 — 阿尔图 Mod
 
-《杀戮尖塔 2》的阿尔图角色 Mod。当前源码对应 **v0.4.8-alpha**，适配游戏 v0.113.1。原作、素材来源与各自许可见 [CREDITS.md](CREDITS.md)；这是非官方、非商业粉丝作品。
+《杀戮尖塔 2》的阿尔图角色 Mod。当前源码对应 **v0.4.9-alpha**，适配游戏 v0.113.1。原作、素材来源与各自许可见 [CREDITS.md](CREDITS.md)；这是非官方、非商业粉丝作品。
 
 ## 源码与构建
 
@@ -16,7 +16,13 @@
 .\Build.ps1 -GameDir '<游戏安装目录>' -BaseLibPath '<BaseLib.dll 完整路径>'
 ```
 
-脚本生成 `package/ArtuMod/ArtuMod.dll`，**源码仓库本身不是安装包**。运行还需配套的 `ArtuMod.pck`。v0.4.8-alpha 未修改资源包，沿用 v0.4.7-alpha 的 PCK；请从 [Steam 创意工坊条目](https://steamcommunity.com/sharedfiles/filedetails/?id=3817779845) 或已有合法安装包取得。仓库不含游戏或依赖 DLL，且未为全部历史版本逐一复测。若编译试玩桥，请显式传入 `-p:Sts2Dir=<游戏安装目录>`，只编译时加 `-p:SkipModCopy=true`。
+脚本生成 `package/ArtuMod/ArtuMod.dll`，**源码仓库本身不是安装包**。运行还需配套的 `ArtuMod.pck`。请从 [Steam 创意工坊条目](https://steamcommunity.com/sharedfiles/filedetails/?id=3817779845) 取得同版本资源包。也可用 Python 和 Pillow 基于 v0.4.8-alpha 的 PCK（SHA-256 `185177b628d0aedd94260977f56412e55d6df687877b86548980b1d125f0e556`）重建：`python tools/build_art_preview.py assets/art-preview <旧版PCK> <新PCK> --layout full`。先输出到新路径，再与 DLL 配套安装。仓库不含游戏或依赖 DLL。若编译试玩桥，请显式传入 `-p:Sts2Dir=<游戏安装目录>`，只编译时加 `-p:SkipModCopy=true`。
+
+## v0.4.9-alpha 美术更新
+
+- 16 张苏丹牌均采用专属全卡美术。保留原有类型、稀有度、费用、动态期限和效果；其余牌继续使用原排版。
+- 更新阿尔图选角图、头像、牌盒、「群龙无首」封面，以及地图、能量、「全军出击」和「军威如山」图标。
+- 实机截图复核选角构图、地图标记、选牌、手牌和整套苏丹牌。回归 780 项通过；原生显示及截图检查 30 项通过。战斗模型、其他事件美术及联机验收不在本次范围。
 
 ## 版本历史
 

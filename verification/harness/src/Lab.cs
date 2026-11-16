@@ -79,6 +79,9 @@ public static class Lab
         }
         if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ARTU_V04_SCENARIO"))) {
             var compat=Environment.GetEnvironmentVariable("ARTU_V04_SCENARIO")!;
+            if(compat=="art-preview"){
+                _ = MegaCrit.Sts2.Core.Helpers.TaskHelper.RunSafely(ArtPreviewScenario.Run(reportDirectory));return;
+            }
             if(compat is "compat-recovery" or "compat-shop"){
                 _ = MegaCrit.Sts2.Core.Helpers.TaskHelper.RunSafely(CompatibilityScenario.Run(reportDirectory,compat));return;
             }

@@ -11,6 +11,13 @@ public sealed class Artu : PlaceholderCharacterModel
     public override CharacterGender Gender => CharacterGender.Masculine;
     public override Color NameColor => new("d6ae63");
     public override int StartingHp => 70;
+    public override string? CustomMapMarkerPath => ArtPreview.Existing("map") ?? base.CustomMapMarkerPath;
+    public override string? CustomCharacterSelectIconPath => ArtPreview.Existing("artu_button") ?? base.CustomCharacterSelectIconPath;
+    public override string? CustomCharacterSelectLockedIconPath => ArtPreview.Existing("artu_locked") ?? base.CustomCharacterSelectLockedIconPath;
+    public override string? CustomIconTexturePath => ArtPreview.Existing("artu_top") ?? base.CustomIconTexturePath;
+    public override string? CustomIconOutlineTexturePath => ArtPreview.Existing("artu_top") != null ? null : base.CustomIconOutlineTexturePath;
+    public override string CustomIconPath => ArtPreview.Scene("icon") ?? base.CustomIconPath;
+    public override string CustomCharacterSelectBg => ArtPreview.Scene("bg") ?? base.CustomCharacterSelectBg;
     public override CardPoolModel CardPool => ModelDb.CardPool<ArtuCardPool>();
     public override RelicPoolModel RelicPool => ModelDb.RelicPool<ArtuRelicPool>();
     public override PotionPoolModel PotionPool => ModelDb.PotionPool<MegaCrit.Sts2.Core.Models.PotionPools.IroncladPotionPool>();
@@ -29,8 +36,8 @@ public sealed class Artu : PlaceholderCharacterModel
 public sealed class ArtuCardPool : CustomCardPoolModel
 {
     public override string Title => "Artu";
-    public override string BigEnergyIconPath => ModelDb.CardPool<MegaCrit.Sts2.Core.Models.CardPools.IroncladCardPool>().EnergyIconPath;
-    public override string TextEnergyIconPath => "res://images/packed/sprite_fonts/ironclad_energy_icon.png";
+    public override string BigEnergyIconPath => ArtPreview.Existing("energy") ?? ModelDb.CardPool<MegaCrit.Sts2.Core.Models.CardPools.IroncladCardPool>().EnergyIconPath;
+    public override string TextEnergyIconPath => ArtPreview.Existing("energy_text") ?? "res://images/packed/sprite_fonts/ironclad_energy_icon.png";
     public override float H => 0.12f; public override float S => 0.55f; public override float V => 0.9f;
     public override Color DeckEntryCardColor => new("d6ae63");
     public override bool IsColorless => false;

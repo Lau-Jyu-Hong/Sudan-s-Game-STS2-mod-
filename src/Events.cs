@@ -117,7 +117,7 @@ public static class GoldenDecipher
 }
 public sealed class Leaderless : CustomEventModel
 {
-    public override string CustomInitialPortraitPath=>"res://images/events/trial.png";
+    public override string CustomInitialPortraitPath=>ArtPreview.Existing("leaderless")??"res://images/events/trial.png";
     public override bool IsAllowed(MegaCrit.Sts2.Core.Runs.IRunState state)=>state.Players.Any(p=>p.Character is Artu);
     public override List<(string,string)> Localization=>new EventLoc("群龙无首",new EventPageLoc("INITIAL","长桌的主位空着。有人怀念过去的秩序，有人谈论尚未到来的世界。你可以带走一件旧物，或留下一种新的想法。"));
     protected override IReadOnlyList<EventOption> GenerateInitialOptions()

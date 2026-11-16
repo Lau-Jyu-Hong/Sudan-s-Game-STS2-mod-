@@ -29,7 +29,27 @@ public static class SmokeTests
         Check("Rest exchange label present",()=>new LocString("rest_site_ui","OPTION_ARTU_EXCHANGE.name").GetFormattedText()=="换牌");
         Check("Relic state survives reflection copy",()=>{var a=(WitchCardBox)ModelDb.Relic<WitchCardBox>().ToMutable();var b=(WitchTreasureBox)ModelDb.Relic<WitchTreasureBox>().ToMutable();a.Anger=9;a.Mockery=4;foreach(var prop in typeof(WitchCardBox).GetProperties().Where(p=>p.GetCustomAttribute<SavedPropertyAttribute>()!=null&&p.CanWrite))prop.SetValue(b,prop.GetValue(a));return b.Anger==9&&b.Mockery==4;});
         Check("All portrait resources present",()=>ModelDb.All.OfType<ArtuCard>().All(c=>ResourceLoader.Exists(c.PortraitPath)));
-        Check("Original portrait textures load",()=>ModelDb.Card<GoldSlaughter>().Portrait?.GetWidth()==250);
+        Check("Normal Sultan portrait still loads",()=>ModelDb.Card<GoldSlaughter>().Portrait?.GetWidth()==(ArtPreview.Existing("map") is null?250:384));
+        if(ArtPreview.Existing("map")!=null)
+        {
+            Check("Art preview: sixteen independent Sultan art textures without rarity changes",()=>
+                ModelDb.All.OfType<SultanCard>().Count(c=>c.Rarity==CardRarity.Event&&c.Type==CardType.Curse&&c.Portrait.GetWidth()==384)==16);
+            Check("Art preview: full-card textures if present, icons and event art load",()=>
+                ModelDb.All.OfType<SultanCard>().All(c=>ArtPreview.Existing(c.GetType().Name.ToLowerInvariant()+"_full") is not {} path||
+                    ResourceLoader.Load<Texture2D>(path)?.GetHeight()==672)&&ArtPreview.Texture("map")?.GetWidth()==64&&
+                ArtPreview.Texture("energy")?.GetWidth()==128&&ArtPreview.Texture("energy_text")?.GetWidth()==40&&
+                ArtPreview.Texture("leaderless")?.GetWidth()==896&&ArtPreview.Texture("artu_button")?.GetHeight()==240);
+            Check("Art preview: character select and general icon scenes instantiate",()=>
+            {
+                foreach(var key in new[] {"bg","icon"})
+                {
+                    var path=ArtPreview.Scene(key);
+                    if(path==null||ResourceLoader.Load<PackedScene>(path)?.Instantiate() is not Control node)return false;
+                    node.Free();
+                }
+                return true;
+            });
+        }
         Check("All custom status icons load at combat and hover size",()=>{foreach(var p in ModelDb.All.OfType<ArtuPower>().Where(p=>p.GetType().Name.EndsWith("Power",StringComparison.Ordinal))){if(!ResourceLoader.Exists(p.CustomPackedIconPath)||p.Icon.GetWidth()!=128||p.BigIcon.GetWidth()!=128)throw new Exception($"{p.GetType().Name}: icon={p.Icon?.GetWidth()}, big={p.BigIcon?.GetWidth()}, packed={p.PackedIconPath}, resolved={p.ResolvedBigIconPath}");}return true;});
         Check("Every playable custom power has a distinct icon resource path",()=>{var powers=ModelDb.All.OfType<ArtuPower>().Where(p=>p.GetType().Name.EndsWith("Power",StringComparison.Ordinal)).ToArray();return powers.Select(p=>p.CustomPackedIconPath).Distinct().Count()==powers.Length;});
         Check("Saved card properties round trip",()=>{var a=(SultanCard)ModelDb.Card<GoldSlaughter>().ToMutable();a.BattlesRemaining=1;a.TurnsSinceUse=2;var b=(SultanCard)CardModel.FromSerializable(a.ToSerializable());return b.TurnsSinceUse==2&&b.BattlesRemaining==1;});

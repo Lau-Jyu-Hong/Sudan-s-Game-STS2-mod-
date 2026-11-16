@@ -1,0 +1,188 @@
+namespace ArtuMod;
+public abstract class SultanCard(SultanSuit suit,SultanGrade grade) : ArtuCard(1,CardType.Curse,CardRarity.Event,TargetType.AnyEnemy)
+{
+    public SultanSuit Suit {get;}=suit;
+    public SultanGrade Grade {get;}=grade;
+    [SavedProperty] public int BattlesRemaining {get;set;}=Rules.BattleDeadline(grade);
+    [SavedProperty] public int TurnsSinceUse {get;set;}
+    [SavedProperty] public bool UsedThisBattle {get;set;}
+    [SavedProperty] public bool UsedThisTurn {get;set;}
+    [SavedProperty] public bool FailedThisBattle {get;set;}
+    [SavedProperty] public int LastCountedTurn {get;set;}
+    public SultanCard Original => DeckVersion as SultanCard??this;
+    public override int MaxUpgradeLevel => 0;
+    public override bool CanBeGeneratedInCombat=>false;
+    public override bool CanBeGeneratedByModifiers=>false;
+    public override IEnumerable<CardKeyword> CanonicalKeywords=>[CardKeyword.Eternal];
+    protected override bool IsPlayable => BeckyController.Active(Owner)||Util.Tyranny(Owner)||Owner.Creature.HasPower<PassPower>()||SultanPayments.HasReplacement(this)||CanPayAny();
+    protected override void AddExtraArgsToDescription(LocString loc)
+    {
+        loc.Add("Battles",Original.BattlesRemaining);
+        loc.Add("Turns",Math.Max(0,3-Original.TurnsSinceUse));
+    }
+    public bool CanPayAny()=>Suit switch {
+        SultanSuit.Slaughter=>Owner.Creature.CurrentHp>=Rules.SlaughterHpCost(Grade),
+        SultanSuit.Conquest when Grade==SultanGrade.Stone=>Owner.Creature.Block>0,
+        SultanSuit.Conquest when Grade==SultanGrade.Gold=>Util.Enemies(Owner).Any(CanReceiveGoldBlock),
+        SultanSuit.Luxury when Grade==SultanGrade.Bronze=>PileType.Hand.GetPile(Owner).Cards.Any(c=>c is SultanCard&&c!=this),
+        SultanSuit.Luxury=>Owner.Gold>=Rules.LuxuryGoldCost(Grade),
+        _=>Util.Enemies(Owner).Any()
+    };
+    bool CanReceiveGoldBlock(Creature target)=>MegaCrit.Sts2.Core.Hooks.Hook.ModifyBlock(target.CombatState!,target,50,ValueProp.Unpowered,this,null,out _)>=50;
+    public bool CanPayTarget(Creature? target)=>CanPayAny()&&
+        !(Grade==SultanGrade.Gold&&Suit==SultanSuit.Conquest&&(target==null||!CanReceiveGoldBlock(target)));
+    public static SultanCard Get(SultanSuit suit,SultanGrade grade)
+    {
+        Type[,] types={{typeof(StoneSlaughter),typeof(BronzeSlaughter),typeof(SilverSlaughter),typeof(GoldSlaughter)},
+                      {typeof(StoneConquest),typeof(BronzeConquest),typeof(SilverConquest),typeof(GoldConquest)},
+                      {typeof(StoneLuxury),typeof(BronzeLuxury),typeof(SilverLuxury),typeof(GoldLuxury)},
+                      {typeof(StoneLust),typeof(BronzeLust),typeof(SilverLust),typeof(GoldLust)}};
+        return (SultanCard)ModelDb.GetById<CardModel>(ModelDb.GetId(types[(int)suit,(int)grade]));
+    }
+    public override List<(string,string)> Localization=>new CardLoc(
+        new[]{"岩石","青铜","白银","黄金"}[(int)Grade]+"苏丹牌－"+new[]{"杀戮","征服","奢靡","纵欲"}[(int)Suit],
+        "[gold]苏丹牌[/gold]\n"+Text()+"\n期限："+(Grade>=SultanGrade.Silver?"每场战斗":"{Battles}场战斗")+
+        (Grade==SultanGrade.Gold?"，剩余{Turns}个自己的回合（跨战斗）。":"。"));
+    private string Text()=> (Suit,Grade) switch {
+        (SultanSuit.Slaughter,_)=>$"[gold]代价[/gold]：失去{Rules.SlaughterHpCost(Grade)}生命。造成{Rules.SlaughterDamage(Grade)}"+(Grade>=SultanGrade.Silver?"点无视格挡的伤害。":"点伤害。")+(Grade==SultanGrade.Gold?"若杀死目标，随机对另一敌人重复，直到未能杀死。":""),
+        (SultanSuit.Conquest,SultanGrade.Stone)=>"[gold]代价[/gold]：失去全部格挡。每失去5格挡，施加1虚弱与1易伤。",
+        (SultanSuit.Conquest,SultanGrade.Bronze)=>"[gold]代价[/gold]：失去1敏捷。获得2力量。",
+        (SultanSuit.Conquest,SultanGrade.Silver)=>"[gold]代价[/gold]：失去2敏捷。移除目标一半格挡；直到你的下个回合，目标无法获得格挡，负面状态不会自然减少。",
+        (SultanSuit.Conquest,SultanGrade.Gold)=>"[gold]代价[/gold]：目标获得50格挡。若本回合打破其全部格挡，获得5力量和5敏捷。",
+        (SultanSuit.Luxury,SultanGrade.Stone)=>"[gold]代价[/gold]：失去5金币。获得10格挡。",
+        (SultanSuit.Luxury,SultanGrade.Bronze)=>"[gold]代价[/gold]：消耗手牌中另一张苏丹牌。使用并重放它1次；每次均须支付其代价。",
+        (SultanSuit.Luxury,SultanGrade.Silver)=>"[gold]代价[/gold]：失去15金币。接下来3张非苏丹牌耗能变为0。",
+        (SultanSuit.Luxury,SultanGrade.Gold)=>"[gold]代价[/gold]：失去25金币。接下来3个自己的回合，每回合前2张非苏丹牌耗能变为0。",
+        (SultanSuit.Lust,SultanGrade.Stone)=>"[gold]代价[/gold]：目标获得2再生。获得2再生。",
+        (SultanSuit.Lust,SultanGrade.Bronze)=>"[gold]代价[/gold]：目标获得10格挡。获得5再生。",
+        (SultanSuit.Lust,SultanGrade.Silver)=>"[gold]代价[/gold]：目标获得5再生、5覆甲。获得1无实体、6再生。",
+        _=>"[gold]代价[/gold]：所有敌人获得5再生、1无实体、5覆甲。获得2无实体、10再生。"
+    };
+    protected override async Task OnPlay(PlayerChoiceContext ctx,CardPlay play)
+    {
+        var target=play.Target??Util.RandomEnemy(Owner);
+        var state=Util.State(Owner);
+        int lostBlock=0;
+        CardModel? sacrificed=null;
+        bool paid=false;
+        bool actualUse=play.Card==this;
+        bool replacement=actualUse&&SultanPayments.ConsumeReplacement(this);
+        var pass=actualUse?Owner.Creature.GetPower<PassPower>():null;
+        if(BeckyController.Active(Owner))paid=true;
+        else if(pass!=null){await PowerCmd.Decrement(pass);paid=true;}
+        else if(replacement){await PowerCmd.Apply<CrimePower>(ctx,Owner.Creature,1,Owner.Creature,play.Card);await PaymentLedger.Record(ctx,Owner);paid=true;}
+        else
+        {
+            bool doubleCost=actualUse&&Owner.Creature.HasPower<DoubleCostPower>();
+            int count=doubleCost?2:1;
+            for(int i=0;i<count;i++)
+            {
+                // A second zero-block iteration under DoubleCost is deliberately allowed.
+                if(i>0&&Suit==SultanSuit.Conquest&&Grade==SultanGrade.Stone&&Owner.Creature.Block==0)break;
+                if(!CanPayTarget(target))
+                {
+                    if(!actualUse||!Util.Tyranny(Owner))break;
+                    if(state!=null){int before=state.Mockery;state.Mockery++;SultanPayments.LogFailure(ctx,play,this,before,state.Mockery);await state.EnforceHp();}
+                    paid=true;
+                    if(Owner.Creature.IsDead)return;
+                    continue;
+                }
+                switch(Suit)
+                {
+                    case SultanSuit.Slaughter: await Util.LoseHp(ctx,Owner,Rules.SlaughterHpCost(Grade),this);break;
+                    case SultanSuit.Conquest:
+                        if(Grade==SultanGrade.Stone){lostBlock+=(int)Owner.Creature.Block;await CreatureCmd.LoseBlock(ctx,Owner.Creature,Owner.Creature.Block,Owner.Creature);}
+                        else if(Grade<SultanGrade.Gold)await AddPower<DexterityPower>(ctx,Grade==SultanGrade.Bronze?-1:-2);
+                        else if(target!=null){int before=target.Block;await CreatureCmd.GainBlock(target,50,ValueProp.Unpowered,null);if(target.Block-before<50)continue;}
+                        break;
+                    case SultanSuit.Luxury:
+                        if(Grade==SultanGrade.Bronze)
+                        {
+                            var payment=await Select(ctx,PileType.Hand.GetPile(Owner).Cards.Where(c=>c is SultanCard&&c!=this));
+                            if(payment==null)continue;
+                            sacrificed??=payment;
+                            await CardCmd.Exhaust(ctx,payment);
+                        }
+                        else {int cost=Rules.LuxuryGoldCost(Grade);await PlayerCmd.LoseGold(cost,Owner);if(state!=null)state.GoldLost+=cost;}
+                        break;
+                    case SultanSuit.Lust:
+                        var enemies=Grade==SultanGrade.Gold?Util.Enemies(Owner).ToArray():target==null?[]:new[]{target};
+                        foreach(var enemy in enemies)
+                        {
+                            if(Grade==SultanGrade.Bronze)await CreatureCmd.GainBlock(enemy,10,ValueProp.Unpowered,null);
+                            else await AddPower<RegenPower>(ctx,Grade==SultanGrade.Stone?2:5,enemy);
+                            if(Grade>=SultanGrade.Silver)await AddPower<PlatingPower>(ctx,5,enemy);
+                            if(Grade==SultanGrade.Gold)await AddPower<IntangiblePower>(ctx,1,enemy);
+                        } break;
+                }
+                paid=true;await PaymentLedger.Record(ctx,Owner);
+            }
+        }
+        if(!paid||Owner.Creature.IsDead)return;
+        if(actualUse)
+        {
+            var original=Original;original.BattlesRemaining=Rules.BattleDeadline(Grade);original.TurnsSinceUse=0;
+            original.UsedThisBattle=true;original.UsedThisTurn=true;
+        }
+        switch(Suit)
+        {
+            case SultanSuit.Slaughter:
+                while(target!=null&&!target.IsDead)
+                {
+                    if(Grade>=SultanGrade.Silver)
+                        await CreatureCmd.Damage(ctx,target,Rules.SlaughterDamage(Grade),ValueProp.Move|ValueProp.Unblockable,Owner.Creature,play.Card,play);
+                    else await DamageCmd.Attack(Rules.SlaughterDamage(Grade)).FromCard(play.Card,play).Targeting(target).Execute(ctx);
+                    if(Grade!=SultanGrade.Gold||!target.IsDead)break;
+                    target=Util.RandomEnemy(Owner);
+                }break;
+            case SultanSuit.Conquest:
+                if(Grade==SultanGrade.Stone&&target!=null){await AddPower<WeakPower>(ctx,lostBlock/5,target);await AddPower<VulnerablePower>(ctx,lostBlock/5,target);}
+                if(Grade==SultanGrade.Bronze)await AddPower<StrengthPower>(ctx,2);
+                if(Grade==SultanGrade.Silver&&target!=null)
+                {
+                    await CreatureCmd.LoseBlock(ctx,target,target.Block/2,Owner.Creature);
+                    var lockPower=await PowerCmd.Apply<SubjugatedPower>(ctx,target,1,Owner.Creature,this);
+                    if(lockPower!=null)lockPower.CommanderId=Owner.NetId;
+                }
+                if(Grade==SultanGrade.Gold&&target!=null)
+                {
+                    var challenge=await PowerCmd.Apply<ConquestChallengePower>(ctx,Owner.Creature,1,Owner.Creature,this);
+                    challenge?.Targets.Add(target);
+                }break;
+            case SultanSuit.Luxury:
+                if(Grade==SultanGrade.Stone)await CreatureCmd.GainBlock(Owner.Creature,10,ValueProp.Move,play);
+                if(Grade==SultanGrade.Bronze&&sacrificed is SultanCard chosen)
+                {
+                    // Re-enter through game's autoplay pipeline so replay hooks and costs execute.
+                    chosen.ExhaustOnNextPlay=true;
+                    using(SultanPayments.AddReplay(chosen))await CardCmd.AutoPlay(ctx,chosen,Util.RandomEnemy(Owner));
+                }
+                if(Grade==SultanGrade.Silver)await AddPower<FreeCardsPower>(ctx,3);
+                if(Grade==SultanGrade.Gold)
+                {
+                    var power=Owner.Creature.GetPower<GoldenLuxuryPower>()??await PowerCmd.Apply<GoldenLuxuryPower>(ctx,Owner.Creature,1,Owner.Creature,this);
+                    power?.Refresh();
+                }break;
+            case SultanSuit.Lust:
+                if(Grade>=SultanGrade.Silver)await AddPower<IntangiblePower>(ctx,Grade==SultanGrade.Silver?1:2);
+                await AddPower<RegenPower>(ctx,new[]{2,5,6,10}[(int)Grade]);break;
+        }
+        if(actualUse&&Util.Tyranny(Owner)&&!Owner.Creature.IsDead)await CardPileCmd.Draw(ctx,1,Owner);
+    }
+}
+public sealed class StoneSlaughter():SultanCard(SultanSuit.Slaughter,SultanGrade.Stone);
+public sealed class BronzeSlaughter():SultanCard(SultanSuit.Slaughter,SultanGrade.Bronze);
+public sealed class SilverSlaughter():SultanCard(SultanSuit.Slaughter,SultanGrade.Silver);
+public sealed class GoldSlaughter():SultanCard(SultanSuit.Slaughter,SultanGrade.Gold);
+public sealed class StoneConquest():SultanCard(SultanSuit.Conquest,SultanGrade.Stone);
+public sealed class BronzeConquest():SultanCard(SultanSuit.Conquest,SultanGrade.Bronze);
+public sealed class SilverConquest():SultanCard(SultanSuit.Conquest,SultanGrade.Silver);
+public sealed class GoldConquest():SultanCard(SultanSuit.Conquest,SultanGrade.Gold);
+public sealed class StoneLuxury():SultanCard(SultanSuit.Luxury,SultanGrade.Stone);
+public sealed class BronzeLuxury():SultanCard(SultanSuit.Luxury,SultanGrade.Bronze);
+public sealed class SilverLuxury():SultanCard(SultanSuit.Luxury,SultanGrade.Silver);
+public sealed class GoldLuxury():SultanCard(SultanSuit.Luxury,SultanGrade.Gold);
+public sealed class StoneLust():SultanCard(SultanSuit.Lust,SultanGrade.Stone);
+public sealed class BronzeLust():SultanCard(SultanSuit.Lust,SultanGrade.Bronze);
+public sealed class SilverLust():SultanCard(SultanSuit.Lust,SultanGrade.Silver);
+public sealed class GoldLust():SultanCard(SultanSuit.Lust,SultanGrade.Gold);

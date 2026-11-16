@@ -1,0 +1,17 @@
+{
+  "id": "ArtuMod",
+  "name": "苏丹的游戏 — 阿尔图",
+  "author": "Artu Mod Project",
+  "description": "阿尔图角色原型v0.3：59张常规奖励牌、二阶思潮、贝姬代打、军队联动及圆桌茶会；未定稿内容保持待设计。",
+  "version": "v0.3.0",
+  "min_game_version": "0.111.0",
+  "has_dll": true,
+  "has_pck": true,
+  "affects_gameplay": true,
+  "dependencies": [
+    {
+      "id": "BaseLib",
+      "min_version": "3.3.8"
+    }
+  ]
+}

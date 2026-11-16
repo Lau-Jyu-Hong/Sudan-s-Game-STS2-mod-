@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>
+    <LangVersion>13</LangVersion><AssemblyName>ArtuMod</AssemblyName><EnableDefaultCompileItems>true</EnableDefaultCompileItems>
+    <GameData>$(GameDir)\data_sts2_windows_x86_64</GameData>
+    <NoWarn>$(NoWarn);MSB3270</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="sts2" HintPath="$(GameData)\sts2.dll" Private="false"/>
+    <Reference Include="GodotSharp" HintPath="$(GameData)\GodotSharp.dll" Private="false"/>
+    <Reference Include="0Harmony" HintPath="$(GameData)\0Harmony.dll" Private="false"/>
+    <Reference Include="BaseLib" HintPath="$(BaseLibPath)" Private="false"/>
+    <Compile Remove="obj/**;bin/**"/>
+  </ItemGroup>
+</Project>

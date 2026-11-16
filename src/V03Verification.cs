@@ -18,7 +18,7 @@ public static class V03Verification
         try
         {
             var pool=ModelDb.CardPool<ArtuCardPool>().AllCards.ToArray();
-            Check("v04 normal pool: 20 common, 35 uncommon, 25 rare",pool.Count(c=>c.Rarity==CardRarity.Common)==20&&pool.Count(c=>c.Rarity==CardRarity.Uncommon)==35&&pool.Count(c=>c.Rarity==CardRarity.Rare)==25);
+            Check("v04 supplemented pool: 22 common, 35 uncommon, 25 rare",pool.Count(c=>c.Rarity==CardRarity.Common)==22&&pool.Count(c=>c.Rarity==CardRarity.Uncommon)==35&&pool.Count(c=>c.Rarity==CardRarity.Rare)==25);
             Check("v04 final thoughts excluded from normal rewards",pool.OfType<FinalThought>().All(c=>c.Rarity is CardRarity.Event or CardRarity.Ancient&&!c.CanBeGeneratedInCombat&&!c.CanBeGeneratedByModifiers));
             Check("v03 three second thoughts are 1-energy uncommon powers without upgrades",new CardModel[]{ModelDb.Card<TouchPurity>(),ModelDb.Card<GlimpseDarkness>(),ModelDb.Card<FreedomFromFear>()}.All(c=>c.Type==CardType.Power&&c.Rarity==CardRarity.Uncommon&&c.EnergyCost.Canonical==1&&c.MaxUpgradeLevel==0));
             Check("v03 all Sultan cards remain Curse outside use predicates",pool.OfType<SultanCard>().All(c=>c.Type==CardType.Curse&&!c.IsRemovable&&!c.IsTransformable&&!c.IsUpgradable)&&!pool.Where(c=>c.Type==CardType.Attack||c.Type==CardType.Skill).OfType<SultanCard>().Any());

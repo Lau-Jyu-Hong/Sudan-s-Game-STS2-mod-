@@ -1,5 +1,6 @@
 namespace ArtuMod;
-public abstract class SultanCard(SultanSuit suit,SultanGrade grade) : ArtuCard(1,CardType.Curse,CardRarity.Event,suit==SultanSuit.Luxury?TargetType.Self:TargetType.AnyEnemy)
+public abstract class SultanCard(SultanSuit suit,SultanGrade grade) : ArtuCard(1,CardType.Curse,CardRarity.Event,
+    suit==SultanSuit.Luxury||suit==SultanSuit.Conquest&&grade==SultanGrade.Bronze||suit==SultanSuit.Lust&&grade==SultanGrade.Gold?TargetType.Self:TargetType.AnyEnemy)
 {
     public SultanSuit Suit {get;}=suit;
     public SultanGrade Grade {get;}=grade;
@@ -22,6 +23,36 @@ public abstract class SultanCard(SultanSuit suit,SultanGrade grade) : ArtuCard(1
     {
         loc.Add("Battles",Original.BattlesRemaining);
         loc.Add("Turns",Math.Max(0,3-Original.TurnsSinceUse));
+        loc.Add("Frozen",IsMutable&&RunState!=null&&V04.Data(Owner).Grace?"（冻结中）":"");
+        loc.Add("Fulfilled",IsMutable&&RunState!=null&&Original.UsedThisBattle?"（本场已履行）":"");
+    }
+    protected override IEnumerable<MegaCrit.Sts2.Core.HoverTips.IHoverTip> ExtraHoverTips=>base.ExtraHoverTips.Concat([
+        new MegaCrit.Sts2.Core.HoverTips.HoverTip(new LocString("powers","ARTU_TERM_期限"),DeadlineText()+"\n逾期："+ExpiryText()+"\n另外获得1层苏丹之怒。每张原牌独立计时。"){Id="ArtuDeadline:"+Id}]);
+    public string ExpiryText()=>(Suit,Grade) switch{
+        (SultanSuit.Slaughter,SultanGrade.Stone)=>"失去10生命。",
+        (SultanSuit.Slaughter,SultanGrade.Bronze)=>"失去20生命。",
+        (SultanSuit.Slaughter,SultanGrade.Silver)=>"失去30生命。",
+        (SultanSuit.Slaughter,SultanGrade.Gold)=>"永久将最大生命减半，余下本局无法提高最大生命。",
+        (SultanSuit.Conquest,SultanGrade.Stone)=>"未来3场战斗开场获得99虚弱。",
+        (SultanSuit.Conquest,SultanGrade.Bronze)=>"此后每场战斗开场少1力量（多次逾期累计）。",
+        (SultanSuit.Conquest,SultanGrade.Silver)=>"未来3场战斗不能获得敏捷。",
+        (SultanSuit.Conquest,SultanGrade.Gold)=>"整局不能获得力量或敏捷；此后每场战斗所有敌人开场获得1无实体。",
+        (SultanSuit.Luxury,SultanGrade.Stone)=>"下一次商店购买商品价格翻倍，直至完成一次购买。",
+        (SultanSuit.Luxury,SultanGrade.Bronze)=>"下一家商店全部商品价格翻倍。",
+        (SultanSuit.Luxury,SultanGrade.Silver)=>"下一家商店不能购买商品。",
+        (SultanSuit.Luxury,SultanGrade.Gold)=>"整局不能获得金币，已有金币仍可使用。",
+        (SultanSuit.Lust,SultanGrade.Stone)=>"未来3场战斗开场获得99易伤。",
+        (SultanSuit.Lust,SultanGrade.Bronze)=>"未来3场战斗所有敌人开场获得5滚石。",
+        (SultanSuit.Lust,SultanGrade.Silver)=>"未来3场战斗中，自身治疗时所有敌人回复同等生命。",
+        _=>"整局不能治疗；战斗中本应治疗自己的效果改为治疗所有敌人同等生命。"
+    };
+    public string DeadlineText()
+    {
+        string text=$"总期限：{Rules.BattleDeadline(Grade)}场战斗；当前剩余{Original.BattlesRemaining}场。";
+        if(Grade==SultanGrade.Gold)text+=$"\n另有跨战斗3个自己的回合期限，当前剩余{Math.Max(0,3-Original.TurnsSinceUse)}回合。";
+        if(IsMutable&&RunState!=null&&CombatManager.Instance.IsInProgress)text+=Original.UsedThisBattle?"\n本场已履行，胜利时不会推进本牌场数倒计时。":"\n本场尚未履行。";
+        if(IsMutable&&RunState!=null&&V04.Data(Owner).Grace)text+="\n本场履行状态与期限冻结。普通全凭君恩的战后额外扣减仍按该牌规则执行。";
+        return text;
     }
     public bool CanPayAny()=>Suit switch {
         SultanSuit.Slaughter=>Owner.Creature.CurrentHp>=Rules.SlaughterHpCost(Grade),
@@ -44,7 +75,7 @@ public abstract class SultanCard(SultanSuit suit,SultanGrade grade) : ArtuCard(1
     }
     public override List<(string,string)> Localization=>new CardLoc(
         new[]{"岩石","青铜","白银","黄金"}[(int)Grade]+"苏丹牌－"+new[]{"杀戮","征服","奢靡","纵欲"}[(int)Suit],
-        "[gold]苏丹牌[/gold]\n"+Text()+"\n期限："+(Grade>=SultanGrade.Silver?"每场战斗":"{Battles}场战斗")+
+        "[gold]苏丹牌[/gold]\n"+Text()+$"\n总期限{Rules.BattleDeadline(Grade)}场；剩余{{Battles}}场{{Frozen}}{{Fulfilled}}"+
         (Grade==SultanGrade.Gold?"，剩余{Turns}个自己的回合（跨战斗）。":"。"));
     private string Text()=> (Suit,Grade) switch {
         (SultanSuit.Slaughter,_)=>$"[gold]代价[/gold]：失去{Rules.SlaughterHpCost(Grade)}生命。造成{{Damage:diff()}}"+(Grade>=SultanGrade.Silver?"点无视格挡的伤害。":"点伤害。")+(Grade==SultanGrade.Gold?"若杀死目标，随机对另一敌人重复，直到未能杀死。":""),
@@ -63,7 +94,7 @@ public abstract class SultanCard(SultanSuit suit,SultanGrade grade) : ArtuCard(1
     };
     protected override async Task OnPlay(PlayerChoiceContext ctx,CardPlay play)
     {
-        var target=Suit==SultanSuit.Luxury?null:play.Target??Util.RandomEnemy(Owner);
+        var target=TargetType==TargetType.AnyEnemy?play.Target??Util.RandomEnemy(Owner):null;
         var state=Util.State(Owner);
         int lostBlock=0;
         CardModel? sacrificed=null;
@@ -115,7 +146,7 @@ public abstract class SultanCard(SultanSuit suit,SultanGrade grade) : ArtuCard(1
                         var enemies=Grade==SultanGrade.Gold?Util.Enemies(Owner).ToArray():target==null?[]:new[]{target};
                         foreach(var enemy in enemies)
                         {
-                            if(Grade==SultanGrade.Bronze)await CreatureCmd.GainBlock(enemy,10,ValueProp.Unpowered,null);
+                            if(Grade==SultanGrade.Bronze){await CreatureCmd.GainBlock(enemy,10,ValueProp.Unpowered,null);TurnOrderDiagnostics.Record("bronze lust block granted",Owner.Creature.CombatState);}
                             else await AddPower<RegenPower>(ctx,Grade==SultanGrade.Stone?2:5,enemy);
                             if(Grade>=SultanGrade.Silver)await AddPower<PlatingPower>(ctx,5,enemy);
                             if(Grade==SultanGrade.Gold)await AddPower<IntangiblePower>(ctx,1,enemy);

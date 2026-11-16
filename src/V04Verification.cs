@@ -17,7 +17,7 @@ public static class V04Verification
             var expected=new Type[]{typeof(KnowYourEnemy),typeof(RobPeterToPayPaul),typeof(CriminalDefense),typeof(SecretMessenger),typeof(MarchingDrum),typeof(CollectiveWisdom),typeof(ScribesManuscript),typeof(AtonementPrayer),typeof(AncientFaith),typeof(RebellionIntent),typeof(ArmyRegularization),typeof(RevolutionaryAcademy),typeof(AllByKingsGrace),typeof(SpiralWaltz),typeof(OpenThought),typeof(LifeScepter),typeof(ProfitFromCrime),typeof(BurnTheBoats),typeof(UndergroundPress),typeof(MoneyOpensDoors),typeof(RoyalConscription)};
             using(var f=new Fixture())
             {
-                var normal=V04.RewardCards(f.Player).ToArray();Check("ordinary rewards register 22/35/25=82",normal.Length==82&&normal.Count(c=>c.Rarity==CardRarity.Common)==22&&normal.Count(c=>c.Rarity==CardRarity.Uncommon)==35&&normal.Count(c=>c.Rarity==CardRarity.Rare)==25);
+                var normal=V04.RewardCards(f.Player).ToArray();Check("ordinary rewards register 23/36/25=84",normal.Length==84&&normal.Count(c=>c.Rarity==CardRarity.Common)==23&&normal.Count(c=>c.Rarity==CardRarity.Uncommon)==36&&normal.Count(c=>c.Rarity==CardRarity.Rare)==25);
                 foreach(var type in expected)
                 {var card=normal.Single(c=>c.GetType()==type);Check($"{card.Title} is a real registered reward",card.CanBeGeneratedInCombat&&card.CanBeGeneratedByModifiers&&card.Localization!.All(t=>!t.Item2.Contains("未确定")));
                 var mutable=f.Combat.CreateCard(card,f.Player);Check($"{type.Name} upgrade rule",mutable.IsUpgradable==(!card.Thought&&!card.Reading));if(mutable.IsUpgradable){CardCmd.Upgrade(mutable);Check($"{type.Name} upgrade applies",mutable.IsUpgraded);}}
@@ -40,9 +40,9 @@ public static class V04Verification
             }
             using(var f=new Fixture())
             {
-                f.Gain(0,7);f.Apply<LivingOffWarPower>(1);f.Play<ArmyRegularization>();Check("regularization converts every levy to selected soldiers",f.Player.Creature.GetPowerAmount<LevyPower>()==0&&f.Player.Creature.GetPowerAmount<SoldierPower>()==7&&f.State.LeviesConverted==7&&f.Player.Creature.Block==7);
-                Check("conversion does not activate living off war",ArmyPower.All(f.Player).Sum(a=>a.Amount)==7);
-                f.Gain(0,8);f.Play<RevolutionaryAcademy>();f.Await(f.Player.Creature.GetPower<AcademyPower>()!.AfterPlayerTurnStart(f.Context,f.Player));Check("academy converts at most four into fixed selected kind",f.Player.Creature.GetPowerAmount<LevyPower>()==4&&f.Player.Creature.GetPowerAmount<SoldierPower>()==11&&f.State.LeviesConverted==11);
+                f.Gain(0,7);f.Apply<LivingOffWarPower>(1);f.Play<ArmyRegularization>();Check("regularization adds 2, converts 9 to selected soldiers",f.Player.Creature.GetPowerAmount<LevyPower>()==0&&f.Player.Creature.GetPowerAmount<SoldierPower>()==9&&f.State.LeviesConverted==9&&f.Player.Creature.Block==9);
+                Check("conversion does not activate living off war",ArmyPower.All(f.Player).Sum(a=>a.Amount)==9);
+                f.Gain(0,8);f.Play<RevolutionaryAcademy>();f.Await(f.Player.Creature.GetPower<AcademyPower>()!.AfterPlayerTurnStart(f.Context,f.Player));Check("academy adds 3 now, 2 at turn start, converts four",f.Player.Creature.GetPowerAmount<LevyPower>()==9&&f.Player.Creature.GetPowerAmount<SoldierPower>()==13&&f.State.LeviesConverted==13);
                 f.Play<TrainArmy>();f.Await(f.Player.Creature.GetPower<TrainingPower>()!.AfterPlayerTurnStart(f.Context,f.Player));Check("existing training contributes true conversions",f.State.LeviesConverted>11);
             }
             using(var f=new Fixture())

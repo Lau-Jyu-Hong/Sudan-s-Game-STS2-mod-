@@ -1,5 +1,5 @@
 namespace ArtuMod;
-public sealed class PurityInsightPower():OncePerTurnPower("净悟","每回合首张抽牌费用-1，仅持续当前回合，不随层数叠加。若无秘悟，战后复制或进化。")
+public sealed class PurityInsightPower():OncePerTurnPower("净悟","当前{Amount}层。\n"+ArtuTerms.Rules["净悟"])
 {
     public override Task AfterCardDrawnEarly(PlayerChoiceContext ctx,CardModel card,bool fromHandDraw)
     {
@@ -8,7 +8,7 @@ public sealed class PurityInsightPower():OncePerTurnPower("净悟","每回合首
         return Task.CompletedTask;
     }
 }
-public sealed class SecretInsightPower():OncePerTurnPower("秘悟","每回合首次使用苏丹牌，额外失去2生命并抽2张；战斗收益不叠加。若无净悟，战后复制或进化。")
+public sealed class SecretInsightPower():OncePerTurnPower("秘悟","当前{Amount}层。\n"+ArtuTerms.Rules["秘悟"])
 {
     CardPlay? pending;
     protected override void DeepCloneFields(){base.DeepCloneFields();pending=null;}
@@ -20,7 +20,7 @@ public sealed class SecretInsightPower():OncePerTurnPower("秘悟","每回合首
         await Util.LoseHp(ctx,play.Player,2);if(!play.Player.Creature.IsDead)await CardPileCmd.Draw(ctx,2,play.Player);
     }
 }
-public sealed class AwakeningPower():OncePerTurnPower("觉醒","每回合首次使用非苏丹牌获得1士兵；此前没有用苏丹牌时额外抽1。若无臣服，战后复制或进化。")
+public sealed class AwakeningPower():OncePerTurnPower("觉醒","当前{Amount}层。\n"+ArtuTerms.Rules["觉醒"])
 {
     CardPlay? pending;bool draw;
     protected override void DeepCloneFields(){base.DeepCloneFields();pending=null;draw=false;}

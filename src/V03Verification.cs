@@ -18,7 +18,7 @@ public static class V03Verification
         try
         {
             var pool=ModelDb.CardPool<ArtuCardPool>().AllCards.ToArray();
-            Check("v04 supplemented pool: 22 common, 35 uncommon, 25 rare",pool.Count(c=>c.Rarity==CardRarity.Common)==22&&pool.Count(c=>c.Rarity==CardRarity.Uncommon)==35&&pool.Count(c=>c.Rarity==CardRarity.Rare)==25);
+            Check("second batch pool: 23 common, 36 uncommon, 25 rare",pool.Count(c=>c.Rarity==CardRarity.Common)==23&&pool.Count(c=>c.Rarity==CardRarity.Uncommon)==36&&pool.Count(c=>c.Rarity==CardRarity.Rare)==25);
             Check("v04 final thoughts excluded from normal rewards",pool.OfType<FinalThought>().All(c=>c.Rarity is CardRarity.Event or CardRarity.Ancient&&!c.CanBeGeneratedInCombat&&!c.CanBeGeneratedByModifiers));
             Check("v03 three second thoughts are 1-energy uncommon powers without upgrades",new CardModel[]{ModelDb.Card<TouchPurity>(),ModelDb.Card<GlimpseDarkness>(),ModelDb.Card<FreedomFromFear>()}.All(c=>c.Type==CardType.Power&&c.Rarity==CardRarity.Uncommon&&c.EnergyCost.Canonical==1&&c.MaxUpgradeLevel==0));
             Check("v03 all Sultan cards remain Curse outside use predicates",pool.OfType<SultanCard>().All(c=>c.Type==CardType.Curse&&!c.IsRemovable&&!c.IsTransformable&&!c.IsUpgradable)&&!pool.Where(c=>c.Type==CardType.Attack||c.Type==CardType.Skill).OfType<SultanCard>().Any());
@@ -154,7 +154,7 @@ public static class V03Verification
                 f.Play<Drill>();Check("v03 living off war does not trigger twice in one turn",ArmyPower.All(f.Player).Sum(p=>p.Amount)==3);
             }
             using(var f=new Fixture())
-            {f.Apply<LivingOffWarPower>(1);f.Gain(0,3);f.Play<FieldReorganization>();Check("v03 conversion is not falsely treated as consuming troops",ArmyPower.All(f.Player).Sum(a=>a.Amount)==3&&f.Player.Creature.Block==9);}
+            {f.Apply<LivingOffWarPower>(1);f.Gain(0,3);f.Play<FieldReorganization>();Check("conversion adds two levies, not consumption",ArmyPower.All(f.Player).Sum(a=>a.Amount)==5&&f.Player.Creature.Block==9);}
             using(var f=new Fixture())
             {
                 f.Apply<PurityInsightPower>(3);var first=f.Card<TrainArmy>();var second=f.Card<TrainArmy>();

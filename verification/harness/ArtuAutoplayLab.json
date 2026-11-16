@@ -1,6 +1,0 @@
-{
-  "id": "ArtuAutoplayLab", "name": "Artu isolated autoplay lab", "author": "Artu Mod Project",
-  "description": "Test-only AutoSlay adapter. Requires an isolated ArtuModVerification profile and explicit environment variables.",
-  "version": "0.1.0", "has_dll": true, "has_pck": false, "affects_gameplay": true,
-  "dependencies": [{"id":"ArtuMod"},{"id":"BaseLib"}]
-}

@@ -5,8 +5,9 @@ public abstract class ArtuPower(string name,string description,PowerType type=Po
     public override PowerStackType StackType=>PowerStackType.Counter;
     public override List<(string,string)> Localization=>new PowerLoc(name,ArtuTerms.Highlight(description),ArtuTerms.Highlight(description));
     protected override IEnumerable<MegaCrit.Sts2.Core.HoverTips.IHoverTip> ExtraHoverTips=>ArtuTerms.Tips(description,ArtuTerms.OwnerOf(this));
-    public override string CustomPackedIconPath=>ModelDb.Power<StrengthPower>().PackedIconPath;
-    public override string CustomBigIconPath=>ModelDb.Power<StrengthPower>().ResolvedBigIconPath;
+    // Private test probes are not playable statuses and keep their native fallback.
+    public override string CustomPackedIconPath=>GetType().IsPublic?"res://ArtuMod/images/status/"+GetType().Name.ToLowerInvariant()+".tres":ModelDb.Power<StrengthPower>().PackedIconPath;
+    public override string CustomBigIconPath=>CustomPackedIconPath;
 }
 public sealed class PassPower():ArtuPower("御用通行","本回合下一张苏丹牌免除代价。")
 {
@@ -159,10 +160,10 @@ public sealed class VeteranPower():ArmyPower("精兵","回合结束时，每层�
 public sealed class ElitePower():ArmyPower("锐士","回合结束时，每层对随机敌人造成4伤害。"){public override int Kind=>3;}
 public sealed class AllArmyPower():ArtuPower("全军出击","杂兵攻击所有敌人。");
 public sealed class GloryPower():ArtuPower("追忆过去的荣光","生成杂兵时，改为等量随机高级兵种。");
-public sealed class TrainingPower():ArtuPower("训练兵队","回合开始时，将最多{Amount}杂兵转为随机高级兵。")
+public sealed class TrainingPower():ArtuPower("训练兵队","回合开始先获得1杂兵，再将最多{Amount}杂兵转为随机高级兵。")
 {
     public override async Task AfterPlayerTurnStart(PlayerChoiceContext ctx,Player p)
-    {if(p!=Owner.Player)return;var levy=Owner.GetPower<LevyPower>();if(levy==null)return;int n=Math.Min(Amount,levy.Amount);
+    {if(p!=Owner.Player)return;await ArmyPower.Gain(ctx,p,0,1);var levy=Owner.GetPower<LevyPower>();if(levy==null)return;int n=Math.Min(Amount,levy.Amount);
     await V04.Convert(ctx,p,n,null);}
 }
 public sealed class WarSongPower():ArtuPower("强军战歌","每回合开始时，获得{Amount}精兵。")

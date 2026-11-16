@@ -44,17 +44,17 @@ public sealed class ScribesManuscript():RewardCard(1,CardType.Skill,CardRarity.U
     public override IEnumerable<CardKeyword> CanonicalKeywords=>[CardKeyword.Exhaust];
     protected override async Task OnPlay(PlayerChoiceContext ctx,CardPlay play){var top=Owner.PlayerCombatState!.DrawPile.Cards.Take(5).ToArray();if(top.Length==0)return;var chosen=(await CardSelectCmd.FromSimpleGrid(ctx,top,Owner,new CardSelectorPrefs(SelectionScreenPrompt,0,Math.Min(2,top.Length)))).ToHashSet();foreach(var card in top)await CardPileCmd.Add(card,chosen.Contains(card)?PileType.Hand:PileType.Discard);}
 }
-public sealed class ArmyRegularization():RewardCard(1,CardType.Skill,CardRarity.Rare,TargetType.Self,"军队正规化","将全部杂兵真实转化为选择的一种高级兵种，每转化1层获得1格挡。{ExhaustText}")
+public sealed class ArmyRegularization():RewardCard(1,CardType.Skill,CardRarity.Rare,TargetType.Self,"军队正规化","先获得2杂兵，再将全部杂兵真实转化为选择的一种高级兵种，每转化1层获得1格挡。{ExhaustText}")
 {
     protected override IEnumerable<DynamicVar> CanonicalVars=>[new StringVar("ExhaustText","消耗。")];
     public override IEnumerable<CardKeyword> CanonicalKeywords=>[CardKeyword.Exhaust];
-    protected override async Task OnPlay(PlayerChoiceContext ctx,CardPlay play){if(Owner.Creature.GetPowerAmount<LevyPower>()==0)return;int kind=await V04.ChooseArmy(ctx,Owner,[1,2,3]);int n=await V04.Convert(ctx,Owner,int.MaxValue,kind,play.Card);await CreatureCmd.GainBlock(Owner.Creature,n,ValueProp.Move,play);}
+    protected override async Task OnPlay(PlayerChoiceContext ctx,CardPlay play){await ArmyPower.Gain(ctx,Owner,0,2,play.Card);if(Owner.Creature.GetPowerAmount<LevyPower>()==0)return;int kind=await V04.ChooseArmy(ctx,Owner,[1,2,3]);int n=await V04.Convert(ctx,Owner,int.MaxValue,kind,play.Card);await CreatureCmd.GainBlock(Owner.Creature,n,ValueProp.Move,play);}
     protected override void OnUpgrade(){RemoveKeyword(CardKeyword.Exhaust);((StringVar)DynamicVars["ExhaustText"]).StringValue="";}
 }
-public sealed class RevolutionaryAcademy():RewardCard(2,CardType.Power,CardRarity.Rare,TargetType.Self,"革命军校","选择一种高级兵种。每回合开始，将至多{Troops}层杂兵真实转化为该兵种。")
+public sealed class RevolutionaryAcademy():RewardCard(2,CardType.Power,CardRarity.Rare,TargetType.Self,"革命军校","获得3杂兵，选择一种高级兵种。每回合开始先获得2杂兵，再将至多{Troops}层杂兵真实转化为该兵种。")
 {
     protected override IEnumerable<DynamicVar> CanonicalVars=>[new DynamicVar("Troops",4)];
-    protected override async Task OnPlay(PlayerChoiceContext ctx,CardPlay play){int kind=await V04.ChooseArmy(ctx,Owner,[1,2,3]);var power=await PowerCmd.Apply<AcademyPower>(ctx,Owner.Creature,DynamicVars["Troops"].IntValue,Owner.Creature,play.Card);if(power!=null)power.Kind=kind;}
+    protected override async Task OnPlay(PlayerChoiceContext ctx,CardPlay play){await ArmyPower.Gain(ctx,Owner,0,3,play.Card);int kind=await V04.ChooseArmy(ctx,Owner,[1,2,3]);var power=await PowerCmd.Apply<AcademyPower>(ctx,Owner.Creature,DynamicVars["Troops"].IntValue,Owner.Creature,play.Card);if(power!=null)power.Kind=kind;}
     protected override void OnUpgrade()=>DynamicVars["Troops"].UpgradeValueBy(2);
 }
 public sealed class AllByKingsGrace():RewardCard(1,CardType.Skill,CardRarity.Rare,TargetType.Self,"全凭君恩","本场苏丹牌0费、免代价、额外重放1次；履行状态与期限冻结，不因使用重置。{Penalty}消耗。")
@@ -76,9 +76,28 @@ public sealed class LifeScepter():RewardCard(2,CardType.Power,CardRarity.Rare,Ta
 }
 public sealed class ProfitFromCrime():RewardCard(1,CardType.Power,CardRarity.Rare,TargetType.Self,"以罪谋利","每回合首次获得罪证时，抽2张牌，获得1能量。")
 {protected override Task OnPlay(PlayerChoiceContext ctx,CardPlay play)=>AddPower<CrimeProfitPower>(ctx,1);protected override void OnUpgrade()=>EnergyCost.UpgradeBy(-1);}
-public sealed class BurnTheBoats():RewardCard(2,CardType.Attack,CardRarity.Rare,TargetType.RandomEnemy,"破釜沉舟","消耗全部兵种。每实际消耗1层，对随机敌人造成{Damage:diff()}伤害并获得{Block:diff()}格挡。")
+public sealed class BurnTheBoats():RewardCard(2,CardType.Attack,CardRarity.Rare,TargetType.RandomEnemy,"破釜沉舟","消耗全部兵种。每层对随机敌人造成{Damage:diff()}伤害，获得{Block:diff()}格挡。\n当前可消耗{Troops}层。\n预计总伤害{TotalDamage}，总格挡{TotalBlock}。")
 {
     protected override IEnumerable<DynamicVar> CanonicalVars=>[new DamageVar(6,ValueProp.Move),new BlockVar(2,ValueProp.Move)];
+    protected override void AddExtraArgsToDescription(LocString loc)
+    {
+        int n=IsMutable&&RunState!=null?ArmyPower.All(Owner).Sum(a=>Math.Max(0,a.Amount)):0;
+        loc.Add("Troops",n);loc.Add("TotalDamage",DamageEstimate(n));
+        loc.Add("TotalBlock",Math.Max(0,(int)DynamicVars.Block.PreviewValue)*n);
+    }
+    public string DamageEstimate(int n)
+    {
+        if(!IsMutable||RunState==null||n==0)return "0";
+        var enemies=Util.Enemies(Owner).ToArray();if(enemies.Length==0)return "0";
+        int PerHit(Creature e,decimal damage)=>Math.Max(0,(int)MegaCrit.Sts2.Core.Hooks.Hook.ModifyDamage(Owner.RunState,CombatState,e,Owner.Creature,damage,ValueProp.Move,this,null,MegaCrit.Sts2.Core.Hooks.ModifyDamageHookType.All,CardPreviewMode.Normal,out _));
+        int vigor=Owner.Creature.GetPowerAmount<VigorPower>();
+        var first=enemies.Select(e=>PerHit(e,DynamicVars.Damage.BaseValue)).ToArray();
+        var later=enemies.Select(e=>PerHit(e,DynamicVars.Damage.BaseValue-vigor)).ToArray();
+        int min=first.Min()+later.Min()*(n-1),max=first.Max()+later.Max()*(n-1);
+        return min==max?min.ToString():$"{min}～{max}";
+    }
+    protected override IEnumerable<MegaCrit.Sts2.Core.HoverTips.IHoverTip> ExtraHoverTips=>base.ExtraHoverTips.Concat([
+        new MegaCrit.Sts2.Core.HoverTips.HoverTip(new LocString("powers","ARTU_TERM_兵种总计"),"总计为跨敌人的全部独立命中，不是单体或群攻。不同敌人的易伤/减伤不同则显示区间；随机选择、击杀溢出、活力消耗及后续触发可能改变实际总量。格挡和伤害不合并结算。"){Id="ArtuBoatsTotal"}]);
     protected override async Task OnPlay(PlayerChoiceContext ctx,CardPlay play){var costs=ArmyPower.All(Owner).Select(a=>(a,a.Amount)).ToArray();int n=costs.Sum(c=>c.Amount);await ArmyPower.ConsumeMany(ctx,Owner,costs,play.Card);for(int i=0;i<n&&!Owner.Creature.IsDead;i++){var enemy=Util.RandomEnemy(Owner);if(enemy!=null)await DamageCmd.Attack(DynamicVars.Damage.IntValue).FromCard(play.Card,play).Targeting(enemy).Execute(ctx);await CreatureCmd.GainBlock(Owner.Creature,DynamicVars.Block,play);}}
     protected override void OnUpgrade()=>DynamicVars.Damage.UpgradeValueBy(2);
 }
@@ -98,7 +117,7 @@ public sealed class RoyalConscription():RewardCard(2,CardType.Power,CardRarity.R
     protected override Task OnPlay(PlayerChoiceContext ctx,CardPlay play)=>AddPower<RoyalConscriptionPower>(ctx,DynamicVars["Troops"].IntValue);
     protected override void OnUpgrade()=>DynamicVars["Troops"].UpgradeValueBy(1);
 }
-public abstract class ThirdThought(string title,string text):RewardCard(2,CardType.Power,CardRarity.Rare,TargetType.Self,title,"[gold]思潮[/gold]\n"+text){public override bool Thought=>true;}
+public abstract class ThirdThought(string title,string text):RewardCard(1,CardType.Power,CardRarity.Rare,TargetType.Self,title,"[gold]思潮[/gold]\n"+text){public override bool Thought=>true;}
 public sealed class AtonementPrayer():ThirdThought("赎罪祈愿","永久移除1罪证。每回合首抽非苏丹牌本回合0费。使用后胜利时无罪证且未新增苏丹之怒，虔信+1；累计3进化为完美世界。")
 {protected override async Task OnPlay(PlayerChoiceContext ctx,CardPlay play){await V04.RemoveCrime(ctx,Owner,1);await AddPower<AtonementPower>(ctx,1);}}
 public sealed class AncientFaith():ThirdThought("古老的信仰","每回合第一次主动使用苏丹牌后额外失去2HP，并免代价重放1次。使用后本场使用至少两类苏丹牌获胜，狂信+1；累计3进化为新世界。")
@@ -107,11 +126,11 @@ public sealed class RebellionIntent():ThirdThought("谋反的意图","每回合�
 {protected override Task OnPlay(PlayerChoiceContext ctx,CardPlay play)=>AddPower<RebellionIntentPower>(ctx,1);}
 public abstract class FinalThought(int cost,CardType type,string title,string text):RewardCard(cost,type,CardRarity.Ancient,TargetType.Self,title,"[gold]思潮[/gold]\n"+text)
 {public override bool Thought=>true;public override bool CanBeGeneratedInCombat=>false;public override bool CanBeGeneratedByModifiers=>false;}
-public sealed class PerfectWorld():FinalThought(3,CardType.Power,"完美世界","本场苏丹牌免代价；非苏丹牌0费并在使用后消耗，每因此消耗1张，对所有敌人造成6伤害。")
+public sealed class PerfectWorld():FinalThought(1,CardType.Power,"完美世界","本场苏丹牌免代价；非苏丹牌0费并在使用后消耗，每因此消耗1张，对所有敌人造成6伤害。")
 {protected override Task OnPlay(PlayerChoiceContext ctx,CardPlay play)=>AddPower<PerfectWorldPower>(ctx,1);}
-public sealed class NewWorld():FinalThought(3,CardType.Power,"新世界","每回合首次主动用苏丹牌后失去3HP，免代价重放2次，然后抽2张牌并获得1能量。")
+public sealed class NewWorld():FinalThought(1,CardType.Power,"新世界","每回合首次主动用苏丹牌后失去3HP，免代价重放2次，然后抽2张牌并获得1能量。")
 {protected override Task OnPlay(PlayerChoiceContext ctx,CardPlay play)=>AddPower<NewWorldPower>(ctx,1);}
-public sealed class RegicidePlan():FinalThought(2,CardType.Power,"弑君的计划","每回合结束额外结算所有兵种2次。本场未使用苏丹牌而获胜后，可从永久牌组移除1张苏丹牌。")
+public sealed class RegicidePlan():FinalThought(1,CardType.Power,"弑君的计划","每回合结束额外结算所有兵种2次。本场未使用苏丹牌而获胜后，可从永久牌组移除1张苏丹牌。")
 {protected override Task OnPlay(PlayerChoiceContext ctx,CardPlay play)=>AddPower<RegicidePower>(ctx,1);}
 public sealed class RevolutionConcept():FinalThought(1,CardType.Power,"革命的构思","[gold]读物[/gold]\n从抽牌堆或弃牌堆选1张非苏丹牌入手。每回合首次使用其他读物获得1能量；首次使用其他思潮获得士兵、精兵、锐士各1层。")
 {public override bool Reading=>true;protected override async Task OnPlay(PlayerChoiceContext ctx,CardPlay play){await V04.Fetch(ctx,Owner,c=>c is not SultanCard);await AddPower<RevolutionConceptPower>(ctx,1);}}

@@ -49,12 +49,12 @@ public sealed class BannerResonance():RewardCard(1,CardType.Power,CardRarity.Unc
     protected override Task OnPlay(PlayerChoiceContext ctx,CardPlay play)=>AddPower<BannerResonancePower>(ctx,DynamicVars["Troops"].IntValue);
     protected override void OnUpgrade()=>DynamicVars["Troops"].UpgradeValueBy(1);
 }
-public sealed class FieldReorganization():RewardCard(1,CardType.Skill,CardRarity.Uncommon,TargetType.Self,"临阵整编","转换至多{Troops}杂兵为等量随机高级兵种；每转换一层获得3格挡。")
+public sealed class FieldReorganization():RewardCard(1,CardType.Skill,CardRarity.Uncommon,TargetType.Self,"临阵整编","先获得2杂兵，再转换至多{Troops}杂兵为等量随机高级兵种；每转换一层获得3格挡。")
 {
     protected override IEnumerable<DynamicVar> CanonicalVars=>[new DynamicVar("Troops",3)];
     protected override async Task OnPlay(PlayerChoiceContext ctx,CardPlay play)
     {
-        if(Owner.Creature.GetPower<LevyPower>() is not {} levy)return;
+        await ArmyPower.Gain(ctx,Owner,0,2,play.Card);
         int n=await V04.Convert(ctx,Owner,DynamicVars["Troops"].IntValue,null,play.Card);
         await CreatureCmd.GainBlock(Owner.Creature,n*3,ValueProp.Move,play);
     }
@@ -133,10 +133,10 @@ public sealed class ArmySpecialization():RewardCard(0,CardType.Skill,CardRarity.
 public sealed class ChooseSoldiers():OptionCard("士兵","本回合将高级兵种视为士兵。");
 public sealed class ChooseVeterans():OptionCard("精兵","本回合将高级兵种视为精兵。");
 public sealed class ChooseElites():OptionCard("锐士","本回合将高级兵种视为锐士。");
-public sealed class SupportFromAllSides():RewardCard(1,CardType.Skill,CardRarity.Uncommon,TargetType.Self,"八方支援","获得杂兵、士兵、精兵、锐士各1层。消耗。")
+public sealed class SupportFromAllSides():RewardCard(1,CardType.Skill,CardRarity.Uncommon,TargetType.Self,"八方支援","获得2杂兵以及士兵、精兵、锐士各1层。消耗。")
 {
     public override IEnumerable<CardKeyword> CanonicalKeywords=>[CardKeyword.Exhaust];
-    protected override async Task OnPlay(PlayerChoiceContext ctx,CardPlay play){for(int i=0;i<4;i++)await ArmyPower.Gain(ctx,Owner,i,1,play.Card);}
+    protected override async Task OnPlay(PlayerChoiceContext ctx,CardPlay play){for(int i=0;i<4;i++)await ArmyPower.Gain(ctx,Owner,i,i==0?2:1,play.Card);}
     protected override void OnUpgrade()=>RemoveKeyword(CardKeyword.Exhaust);
 }
 

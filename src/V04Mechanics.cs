@@ -29,6 +29,7 @@ public static class V04
         if(kind.HasValue)await ArmyPower.Gain(ctx,p,kind.Value,n,source);
         else for(int i=0;i<n;i++)await ArmyPower.Gain(ctx,p,ArmyPower.RandomAdvanced(p),1,source);
         if(Util.State(p) is {} s)s.LeviesConverted+=n;
+        foreach(var recruitment in p.Creature.Powers.OfType<TemporaryRecruitmentPower>().ToArray())await recruitment.OnConverted(ctx,n,source);
         await RevolutionAgenda.Refresh(p,ctx);return n;
     }
     public static async Task TriggerAll(PlayerChoiceContext ctx,Player p,int times=1)
@@ -77,11 +78,11 @@ public sealed class ArmyChoice:OptionCard
     protected override IEnumerable<DynamicVar> CanonicalVars=>[new StringVar("Choice","士兵")];
     public override List<(string,string)> Localization=>new CardLoc("{Choice}","选择{Choice}。");
 }
-public sealed class AcademyPower():ArtuPower("革命军校","每回合开始，转化至多{Amount}杂兵为选定高级兵种。")
+public sealed class AcademyPower():ArtuPower("革命军校","每回合开始先获得2杂兵，再转化至多{Amount}杂兵为选定高级兵种。")
 {
     public override PowerInstanceType InstanceType=>PowerInstanceType.Instanced;
     public int Kind {get;set;}=1;
-    public override Task AfterPlayerTurnStart(PlayerChoiceContext ctx,Player p)=>p==Owner.Player?V04.Convert(ctx,p,Amount,Kind):Task.CompletedTask;
+    public override async Task AfterPlayerTurnStart(PlayerChoiceContext ctx,Player p){if(p!=Owner.Player)return;await ArmyPower.Gain(ctx,p,0,2);await V04.Convert(ctx,p,Amount,Kind);}
 }
 public sealed class KingsGracePower():ArtuPower("全凭君恩","本场苏丹牌0费、免代价、额外重放1次，期限与履行状态冻结。")
 {

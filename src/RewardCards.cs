@@ -38,15 +38,15 @@ public sealed class HollowAuthority():RewardCard(1,CardType.Power,CardRarity.Unc
 }
 public sealed class RecruitTroops():RewardCard(1,CardType.Skill,CardRarity.Common,TargetType.Self,"招兵买马","获得{Troops}层杂兵。")
 {
-    protected override IEnumerable<DynamicVar> CanonicalVars=>[new DynamicVar("Troops",1)];
+    protected override IEnumerable<DynamicVar> CanonicalVars=>[new DynamicVar("Troops",2)];
     protected override Task OnPlay(PlayerChoiceContext ctx,CardPlay play)=>ArmyPower.Gain(ctx,Owner,0,DynamicVars["Troops"].IntValue,this);
     protected override void OnUpgrade()=>DynamicVars["Troops"].UpgradeValueBy(1);
 }
 public sealed class CriminalRecruits():RewardCard(1,CardType.Skill,CardRarity.Common,TargetType.Self,"罪犯的投奔","获得{Troops}层杂兵和1层罪证。")
 {
-    protected override IEnumerable<DynamicVar> CanonicalVars=>[new DynamicVar("Troops",5)];
+    protected override IEnumerable<DynamicVar> CanonicalVars=>[new DynamicVar("Troops",7)];
     protected override async Task OnPlay(PlayerChoiceContext ctx,CardPlay play){await ArmyPower.Gain(ctx,Owner,0,DynamicVars["Troops"].IntValue,this);await AddPower<CrimePower>(ctx,1);}
-    protected override void OnUpgrade()=>DynamicVars["Troops"].UpgradeValueBy(2);
+    protected override void OnUpgrade()=>DynamicVars["Troops"].UpgradeValueBy(3);
 }
 public sealed class CoinSlingshot():RewardCard(1,CardType.Attack,CardRarity.Common,TargetType.AnyEnemy,"金币弹弓","失去5金币，造成{Damage}伤害。")
 {
@@ -130,10 +130,10 @@ public sealed class BackroomDeal():RewardCard(3,CardType.Attack,CardRarity.Commo
     protected override async Task OnPlay(PlayerChoiceContext ctx,CardPlay play){await AddPower<CrimePower>(ctx,1);await ArmyPower.Gain(ctx,Owner,1,3,this);await Owner.Creature.GetPower<SoldierPower>()!.Trigger(ctx);}
     protected override void OnUpgrade()=>EnergyCost.UpgradeBy(-1);
 }
-public sealed class TrainArmy():RewardCard(2,CardType.Power,CardRarity.Uncommon,TargetType.Self,"训练兵队","回合开始时，将最多{Troops}层杂兵转为等量随机高级兵种。")
+public sealed class TrainArmy():RewardCard(2,CardType.Power,CardRarity.Uncommon,TargetType.Self,"训练兵队","获得2杂兵。每回合开始先获得1杂兵，再将最多{Troops}层杂兵转为等量随机高级兵种。")
 {
     protected override IEnumerable<DynamicVar> CanonicalVars=>[new DynamicVar("Troops",1)];
-    protected override Task OnPlay(PlayerChoiceContext ctx,CardPlay play)=>AddPower<TrainingPower>(ctx,DynamicVars["Troops"].IntValue);
+    protected override async Task OnPlay(PlayerChoiceContext ctx,CardPlay play){await ArmyPower.Gain(ctx,Owner,0,2,play.Card);await AddPower<TrainingPower>(ctx,DynamicVars["Troops"].IntValue);}
     protected override void OnUpgrade()=>DynamicVars["Troops"].UpgradeValueBy(1);
 }
 public sealed class EliteTroops():RewardCard(1,CardType.Skill,CardRarity.Uncommon,TargetType.Self,"精锐部队","获得{Troops}层锐士。")

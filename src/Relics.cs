@@ -2,7 +2,7 @@ namespace ArtuMod;
 [Pool(typeof(ArtuRelicPool))]
 public class WitchCardBox : CustomRelicModel
 {
-    protected override IEnumerable<MegaCrit.Sts2.Core.HoverTips.IHoverTip> ExtraHoverTips=>ArtuTerms.Tips("苏丹之怒 苏丹的嘲弄 虔信 狂信 谋逆",ArtuTerms.OwnerOf(this));
+    protected override IEnumerable<MegaCrit.Sts2.Core.HoverTips.IHoverTip> ExtraHoverTips=>ArtuTerms.Tips("苏丹牌",ArtuTerms.OwnerOf(this));
     public override RelicRarity Rarity=>RelicRarity.Starter;
     public override string PackedIconPath=>"res://ArtuMod/images/witchcardbox.tres";
     protected override string BigIconPath=>PackedIconPath;
@@ -51,7 +51,7 @@ public class WitchCardBox : CustomRelicModel
     [SavedProperty] public bool NurserySeen {get;set;}
     private bool enforcing;
     public override List<(string,string)> Localization=>new RelicLoc("女术士的牌盒",
-        "每场战斗开始时，从抽牌堆中选择一张苏丹牌加入手牌。休息处可将非黄金苏丹牌换成随机高一级苏丹牌。\n苏丹之怒：{Anger}；苏丹的嘲弄：{Mockery}。","皇命不曾远去。");
+        "每场战斗开始时，从抽牌堆中选择一张苏丹牌加入手牌。休息处可将非黄金苏丹牌换成随机高一级苏丹牌。","皇命不曾远去。");
     protected override IEnumerable<DynamicVar> CanonicalVars=>[new DynamicVar("Anger",0),new DynamicVar("Mockery",0)];
     public override RelicModel? GetUpgradeReplacement()=>ModelDb.Relic<WitchTreasureBox>();
     public async Task EnforceHp()
@@ -232,7 +232,7 @@ public class WitchCardBox : CustomRelicModel
 public sealed class WitchTreasureBox:WitchCardBox
 {
     public override RelicRarity Rarity=>RelicRarity.Ancient;
-    public override List<(string,string)> Localization=>new RelicLoc("女术士的宝盒","开局选择一张苏丹牌加入手牌，本回合0费。休息处换牌时，从三张随机高一级苏丹牌中选一张。\n苏丹之怒：{Anger}；苏丹的嘲弄：{Mockery}。","皇命不曾远去。");
+    public override List<(string,string)> Localization=>new RelicLoc("女术士的宝盒","每场战斗开始时选择一张苏丹牌加入手牌，本回合0费。休息处换牌时，从三张随机高一级苏丹牌中选一张。","皇命不曾远去。");
     public override RelicModel? GetUpgradeReplacement()=>null;
 }
 [Pool(typeof(ArtuRelicPool))]

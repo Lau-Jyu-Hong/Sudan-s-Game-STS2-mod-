@@ -49,6 +49,11 @@ public class WitchCardBox : CustomRelicModel
     [SavedProperty] public bool RevolutionWon {get;set;}
     [SavedProperty] public bool ClearStreamsSeen {get;set;}
     [SavedProperty] public bool NurserySeen {get;set;}
+    [SavedProperty] public int PendingEvolutions {get;set;}
+    [SavedProperty] public int LastOfferedEvolutionStage {get;set;}=-1;
+    [SavedProperty] public int BattleWins {get;set;}
+    [SavedProperty] public int EvolutionResolvedVictory {get;set;}
+    [SavedProperty] public int ForgivenessClaimedVictory {get;set;}
     private bool enforcing;
     public override List<(string,string)> Localization=>new RelicLoc("女术士的牌盒",
         "每场战斗开始时，从抽牌堆中选择一张苏丹牌加入手牌。休息处可将非黄金苏丹牌换成随机高一级苏丹牌。","皇命不曾远去。");
@@ -105,8 +110,8 @@ public class WitchCardBox : CustomRelicModel
         if(Anger>=1)await PowerCmd.Apply<WeakPower>(ctx,Owner.Creature,1,null,null);
         if(Anger>=3)await PowerCmd.Apply<FrailPower>(ctx,Owner.Creature,1,null,null);
         if(Anger>=9)await Util.LoseHp(ctx,Owner,10);
-        if(WeakBattles>0){await PowerCmd.Apply<WeakPower>(ctx,Owner.Creature,99,null,null);WeakBattles--;}
-        if(VulnerableBattles>0){await PowerCmd.Apply<VulnerablePower>(ctx,Owner.Creature,99,null,null);VulnerableBattles--;}
+        if(WeakBattles>0){await PowerCmd.Apply<WeakPower>(ctx,Owner.Creature,5,null,null);WeakBattles=0;}
+        if(VulnerableBattles>0){await PowerCmd.Apply<VulnerablePower>(ctx,Owner.Creature,5,null,null);VulnerableBattles=0;}
         if(StrengthPenalty>0)await PowerCmd.Apply<StrengthPower>(ctx,Owner.Creature,-StrengthPenalty,null,null);
         foreach(var enemy in Util.Enemies(Owner).ToArray())
         {
@@ -174,7 +179,7 @@ public class WitchCardBox : CustomRelicModel
             card.LastCountedTurn=turn;
             if(card.UsedThisTurn){card.TurnsSinceUse=0;card.UsedThisTurn=false;continue;}
             card.TurnsSinceUse++;
-            if(card.TurnsSinceUse>=3){await Expire(ctx,card);card.TurnsSinceUse=0;card.FailedThisBattle=true;}
+            if(card.TurnsSinceUse>=Rules.GoldTurnDeadline){await Expire(ctx,card);card.TurnsSinceUse=0;card.FailedThisBattle=true;}
         }
     }
     public override async Task AfterCombatVictory(CombatRoom room)
@@ -182,6 +187,7 @@ public class WitchCardBox : CustomRelicModel
         if(Owner.Creature.IsDead)return;
         if(V04.Data(Owner).SettlementProcessed)return;
         V04.Data(Owner).SettlementProcessed=true;
+        BattleWins++;
         var ctx=new ThrowingPlayerChoiceContext();
         await TickGold(ctx);
         foreach(var card in Owner.Deck.Cards.OfType<SultanCard>().ToArray())
@@ -206,7 +212,7 @@ public class WitchCardBox : CustomRelicModel
                 if(card.Grade==SultanGrade.Gold){MaxHpLimit=Math.Max(1,Owner.Creature.MaxHp/2);await CreatureCmd.SetMaxHp(Owner.Creature,MaxHpLimit);GrowthLocked=true;}
                 else await Util.LoseHp(ctx,Owner,new[]{10,20,30}[(int)card.Grade]);break;
             case SultanSuit.Conquest:
-                if(card.Grade==SultanGrade.Stone)WeakBattles=Math.Max(WeakBattles,3);
+                if(card.Grade==SultanGrade.Stone)WeakBattles=1;
                 if(card.Grade==SultanGrade.Bronze)StrengthPenalty++;
                 // Confirmed silver expiry: three subsequent battles deny Dexterity.
                 if(card.Grade==SultanGrade.Silver)StrengthLockBattles=Math.Max(StrengthLockBattles,3);
@@ -218,7 +224,7 @@ public class WitchCardBox : CustomRelicModel
                 if(card.Grade==SultanGrade.Silver)NoBuyingShops=Math.Max(NoBuyingShops,1);
                 if(card.Grade==SultanGrade.Gold)GoldLocked=true;break;
             case SultanSuit.Lust:
-                if(card.Grade==SultanGrade.Stone)VulnerableBattles=Math.Max(VulnerableBattles,3);
+                if(card.Grade==SultanGrade.Stone)VulnerableBattles=1;
                 if(card.Grade==SultanGrade.Bronze)BoulderBattles=Math.Max(BoulderBattles,3);
                 // Confirmed silver lust expiry: three subsequent battles mirror healing.
                 if(card.Grade==SultanGrade.Silver)MirrorHealBattles=Math.Max(MirrorHealBattles,3);
@@ -228,6 +234,8 @@ public class WitchCardBox : CustomRelicModel
     }
     public override bool TryModifyRestSiteOptions(Player player,ICollection<MegaCrit.Sts2.Core.Entities.RestSite.RestSiteOption> options)
     {if(player!=Owner)return false;options.Add(new ExchangeSultanOption(player));if(Crime>0)options.Add(new ClearCrimeOption(player));return true;}
+    public override bool TryModifyRewards(Player player,List<MegaCrit.Sts2.Core.Rewards.Reward> rewards,AbstractRoom? room)
+        =>player==Owner&&room is CombatRoom&&EvolutionRewards.Add(player,rewards);
 }
 public sealed class WitchTreasureBox:WitchCardBox
 {

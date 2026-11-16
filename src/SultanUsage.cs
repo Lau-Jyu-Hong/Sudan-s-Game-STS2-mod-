@@ -7,8 +7,11 @@ namespace ArtuMod;
 
 public static class SultanUsage
 {
-    sealed class Data {public readonly HashSet<ModelId> Used=[];public readonly List<(int turn,CardPlay play)> Plays=[];}
+    sealed class Data {public readonly HashSet<ModelId> Used=[];public readonly List<(int turn,CardPlay play)> Plays=[];public int FirstManualTurn=-1;public bool FirstManualSultan;}
     static readonly ConditionalWeakTable<Player,Data> DataByPlayer=new();
+    public static bool? FirstManualIsSultan(Player p){var d=DataByPlayer.GetOrCreateValue(p);return d.FirstManualTurn==p.PlayerCombatState?.TurnNumber?d.FirstManualSultan:null;}
+    public static void RecordManualStart(CardModel card)
+    {var d=DataByPlayer.GetOrCreateValue(card.Owner);int turn=card.Owner.PlayerCombatState?.TurnNumber??0;if(d.FirstManualTurn==turn)return;d.FirstManualTurn=turn;d.FirstManualSultan=card is SultanCard;}
     public static bool ManualSultanUsedThisTurn(Player p)=>DataByPlayer.GetOrCreateValue(p).Plays.Any(x=>x.turn==p.PlayerCombatState?.TurnNumber&&x.play.Card is SultanCard&&!x.play.IsAutoPlay);
     public static int NonSultanThisTurn(Player p)=>DataByPlayer.GetOrCreateValue(p).Plays.Count(x=>x.turn==p.PlayerCombatState?.TurnNumber&&x.play.Card is not SultanCard);
     public static void Reset(Player player)=>DataByPlayer.Remove(player);
@@ -20,6 +23,7 @@ public static class SultanUsage
         =>DataByPlayer.GetOrCreateValue(play.Player).Plays.TakeWhile(p=>p.play!=play).Any(p=>p.turn==play.Player.PlayerCombatState?.TurnNumber&&p.play.Card is SultanCard);
     public static void Record(CardPlay play)
     {
+        if(!play.IsAutoPlay&&play.IsFirstInSeries)RecordManualStart(play.Card);
         var data=DataByPlayer.GetOrCreateValue(play.Player);
         data.Plays.Add((play.Player.PlayerCombatState?.TurnNumber??0,play));
         if(play.Card is SultanCard)data.Used.Add(play.Card.Id);

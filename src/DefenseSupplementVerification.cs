@@ -55,7 +55,7 @@ public static class DefenseSupplementVerification
             using(var f=new V04Verification.Fixture())
             {
                 f.Play<BlockReprisal>();f.Play<StoneConquest>();
-                Check("rock conquest removal adds reprisal to normal weak",f.Player.Creature.Block==0&&f.Enemy.GetPowerAmount<WeakPower>()==2&&f.Enemy.GetPowerAmount<VulnerablePower>()==1);
+                Check("rock conquest removal adds reprisal to every-four-block weak",f.Player.Creature.Block==0&&f.Enemy.GetPowerAmount<WeakPower>()==3&&f.Enemy.GetPowerAmount<VulnerablePower>()==2);
             }
             using(var f=new V04Verification.Fixture())
             {

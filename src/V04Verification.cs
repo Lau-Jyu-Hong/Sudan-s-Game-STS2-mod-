@@ -71,7 +71,7 @@ public static class V04Verification
                 f.Apply<CrimePower>(stacks);int hp=f.Player.Creature.CurrentHp;var crime=f.Player.Creature.GetPower<CrimePower>()!;
                 Check($"crime {stacks} opening draw -1 and natural energy condition",crime.ModifyHandDraw(f.Player,5)==4&&crime.ModifyEnergyGain(f.Player,3)==(stacks>=4?2:3));
                 f.Await(crime.AfterPlayerTurnStart(f.Context,f.Player));Check($"crime {stacks} never start-turn HP loss",f.Player.Creature.CurrentHp==hp);
-                var first=f.Card<Quickfoot>();f.Await(CardPileCmd.Add(first,PileType.Hand));Check($"crime {stacks} first non-Sultan surcharge",first.EnergyCost.GetWithModifiers(CostModifiers.All)==first.EnergyCost.Canonical+(stacks>=5?1:0));
+                var first=f.Card<Quickfoot>();f.Await(CardPileCmd.Add(first,PileType.Hand));f.Await(crime.AfterCardDrawnEarly(f.Context,first,true));Check($"crime {stacks} first drawn non-Sultan surcharge",first.EnergyCost.GetWithModifiers(CostModifiers.All)==first.EnergyCost.Canonical+(stacks>=5?1:0));
                 int before=f.Player.PlayerCombatState!.DrawPile.Cards.Count(c=>c is Dazed);f.Play(first);int after=f.Player.PlayerCombatState.DrawPile.Cards.Count(c=>c is Dazed);Check($"crime {stacks} first creates exact dazed count",after-before==(stacks>=6?1:0));
                 f.Play<Quickfoot>();Check($"crime {stacks} second replaces sixth-tier dazed rather than doubling",f.Player.PlayerCombatState.DrawPile.Cards.Count(c=>c is Dazed)-after==(stacks>=8?1:0));
                 Check($"crime {stacks} dazed uses native Ethereal unplayable status",f.Player.PlayerCombatState.DrawPile.Cards.OfType<Dazed>().All(c=>c.Keywords.Contains(CardKeyword.Ethereal)&&c.Keywords.Contains(CardKeyword.Unplayable)));
@@ -83,8 +83,8 @@ public static class V04Verification
                 f.Play<AllByKingsGrace>();int hp=f.Player.Creature.CurrentHp;f.Play(card);Check("grace no HP cost and no fulfilled-state reset",hp==f.Player.Creature.CurrentHp&&!original.UsedThisBattle&&original.TurnsSinceUse==2&&original.BattlesRemaining==1);
                 f.Await(f.State.TickGold(f.Context));f.NextTurn();f.Await(f.State.TickGold(f.Context));Check("grace freezes gold across successive own turns",original.TurnsSinceUse==2&&f.State.Anger==0);
                 Check("grace one extra native replay and zero energy",MegaCrit.Sts2.Core.Hooks.Hook.ModifyCardPlayCount(f.Combat,card,1,f.Enemy,out _)==2&&card.EnergyCost.GetWithModifiers(CostModifiers.All)==0);
-                f.Await(V04.Victory(f.Player,f.Context));Check("normal grace battle penalty expires instance once",f.State.Anger==1&&original.BattlesRemaining==1&&original.TurnsSinceUse==0);
-                V04.Reset(f.Player);f.NextTurn();f.Await(f.State.TickGold(f.Context));Check("grace gold expiry restarts original three-turn clock",f.State.Anger==1&&original.TurnsSinceUse==1);
+                f.Await(V04.Victory(f.Player,f.Context));Check("normal grace battle penalty expires instance once while preserving gold turn count",f.State.Anger==1&&original.BattlesRemaining==1&&original.TurnsSinceUse==3);
+                V04.Reset(f.Player);f.NextTurn();f.Await(f.State.TickGold(f.Context));Check("grace gold expiry continues five-turn clock",f.State.Anger==1&&original.TurnsSinceUse==4);
             }
             using(var f=new Fixture())
             {
@@ -108,7 +108,7 @@ public static class V04Verification
             }
             using(var f=new Fixture())
             {
-                f.Play<PerfectWorld>();var card=f.Card<Ironhead>();f.Await(CardPileCmd.Add(card,PileType.Hand));Check("perfect world non-Sultan free",card.EnergyCost.GetWithModifiers(CostModifiers.All)==0);var power=f.Player.Creature.GetPower<PerfectWorldPower>()!;var loc=power.ModifyCardPlayResultLocation(card,false,new(){EnergySpent=0,EnergyValue=0,StarsSpent=0,StarValue=0},new(f.Player,PileType.Discard,CardPilePosition.Bottom));Check("perfect world uses combat exhaust pile",loc.pileType==PileType.Exhaust);int hp=f.Enemy.CurrentHp;f.Await(power.BeforeCardPlayed(f.MakePlay(card)));f.Await(CardCmd.Exhaust(f.Context,card));Check("perfect world one exhaust creates six AOE damage",hp-f.Enemy.CurrentHp==6&&card.Pile?.Type==PileType.Exhaust);
+                f.Play<PerfectWorld>();var card=f.Card<Ironhead>();f.Await(CardPileCmd.Add(card,PileType.Hand));Check("perfect world non-Sultan route makes non-Sultan free",card.EnergyCost.GetWithModifiers(CostModifiers.All)==0);var power=f.Player.Creature.GetPower<PerfectWorldPower>()!;var loc=power.ModifyCardPlayResultLocation(card,false,new(){EnergySpent=0,EnergyValue=0,StarsSpent=0,StarValue=0},new(f.Player,PileType.Discard,CardPilePosition.Bottom));Check("perfect world non-Sultan route exhausts played card",loc.pileType==PileType.Exhaust);int hp=f.Enemy.CurrentHp;f.Await(power.BeforeCardPlayed(f.MakePlay(card)));f.Await(CardCmd.Exhaust(f.Context,card));Check("perfect world no longer deals extra AOE damage",hp==f.Enemy.CurrentHp&&card.Pile?.Type==PileType.Exhaust);
             }
             using(var f=new Fixture())
             {
@@ -132,7 +132,7 @@ public static class V04Verification
                     if(path==2){V04.Data(f.Player).RebellionTriggers=0;f.Play<RebellionIntent>();f.Play<Quickfoot>();f.NextTurn();f.Play<Quickfoot>();}
                     f.Await(V04.Victory(f.Player,f.Context));
                 }
-                Check($"third route {path} evolves after three qualifying combats",path==0?f.State.Devotion==3&&f.Player.Deck.Cards.Count(c=>c is PerfectWorld)==1:path==1?f.State.Fanaticism==3&&f.Player.Deck.Cards.Count(c=>c is NewWorld)==1:f.State.Treason==3&&f.Player.Deck.Cards.Count(c=>c is RegicidePlan)==1);
+                Check($"third route {path} qualifies after three combats without auto evolution",EvolutionRewards.Qualified(f.State,6+path)&&!f.Player.Deck.Cards.Any(c=>c is PerfectWorld or NewWorld or RegicidePlan)&&new[]{f.State.Devotion,f.State.Fanaticism,f.State.Treason}[path]==3);
             }
             using(var f=new Fixture())
             {

@@ -14,7 +14,7 @@ public static class V04
     }
     static readonly ConditionalWeakTable<Player,Battle> Battles=new();
     public static Battle Data(Player p)=>Battles.GetOrCreateValue(p);
-    public static void Reset(Player p){V04Replay.Purified.RemoveWhere(c=>c.Owner==p);Battles.Remove(p);Data(p).AngerAtStart=Util.State(p)?.Anger??0;}
+    public static void Reset(Player p){Battles.Remove(p);Data(p).AngerAtStart=Util.State(p)?.Anger??0;}
     public static int Crime(Player p)=>p.PlayerCombatState!=null&&CombatManager.Instance.IsInProgress?p.Creature.GetPowerAmount<CrimePower>():Util.State(p)?.Crime??0;
     public static async Task RemoveCrime(PlayerChoiceContext ctx,Player p,int n)
     {var power=p.Creature.GetPower<CrimePower>();if(power!=null)await PowerCmd.ModifyAmount(ctx,power,-Math.Min(n,power.Amount),p.Creature,null);else if(Util.State(p) is {} s)s.Crime=Math.Max(0,s.Crime-n);}
@@ -44,17 +44,17 @@ public static class V04
         {
             card.BattlesRemaining--;if(card.Grade==SultanGrade.Gold)card.TurnsSinceUse++;
             GD.Print($"[Artu grace deadline] {card.Id} battles={card.BattlesRemaining} goldTurns={card.TurnsSinceUse} instance={p.Deck.Cards.ToList().IndexOf(card)}");
-            bool turnExpired=card.Grade==SultanGrade.Gold&&card.TurnsSinceUse>=3;
+            bool turnExpired=card.Grade==SultanGrade.Gold&&card.TurnsSinceUse>=Rules.GoldTurnDeadline;
             if(card.BattlesRemaining<=0||turnExpired)await s.Expire(ctx,card);
-            if(turnExpired)card.TurnsSinceUse=0; // Same reset as the original gold three-turn expiry path.
+            if(turnExpired)card.TurnsSinceUse=0;
             if(p.Creature.IsDead)return;
         }
         if(d.ThirdUsed.Contains(typeof(AtonementPrayer))&&s.Crime==0&&s.Anger==d.AngerAtStart)
-        {s.Devotion++;GD.Print($"[Artu evolution] 虔信 {s.Devotion}/3");if(s.Devotion==3)await Evolve<AtonementPrayer,PerfectWorld>(p);}
+        {s.Devotion=Math.Min(3,s.Devotion+1);GD.Print($"[Artu evolution] 虔信 {s.Devotion}/3");if(s.Devotion>=3)EvolutionRewards.Qualify(s,6);}
         if(d.ThirdUsed.Contains(typeof(AncientFaith))&&d.Suits.Count>=2)
-        {s.Fanaticism++;GD.Print($"[Artu evolution] 狂信 {s.Fanaticism}/3");if(s.Fanaticism==3)await Evolve<AncientFaith,NewWorld>(p);}
+        {s.Fanaticism=Math.Min(3,s.Fanaticism+1);GD.Print($"[Artu evolution] 狂信 {s.Fanaticism}/3");if(s.Fanaticism>=3)EvolutionRewards.Qualify(s,7);}
         if(d.ThirdUsed.Contains(typeof(RebellionIntent))&&d.RebellionTriggers>=2)
-        {s.Treason++;GD.Print($"[Artu evolution] 谋逆 {s.Treason}/3");if(s.Treason==3)await Evolve<RebellionIntent,RegicidePlan>(p);}
+        {s.Treason=Math.Min(3,s.Treason+1);GD.Print($"[Artu evolution] 谋逆 {s.Treason}/3");if(s.Treason>=3)EvolutionRewards.Qualify(s,8);}
         int removals=(d.NoteActive&&(s.AgendaFlags&1)!=0?1:0)+(d.RegicideUsed&&SultanUsage.UsedKinds(p).Count==0?1:0);
         for(int i=0;i<removals&&p.Deck.Cards.Any(c=>c is SultanCard);i++)
         {
@@ -158,14 +158,13 @@ public sealed class RebellionIntentPower():OncePerTurnPower("谋反的意图","�
         if(!SultanUsage.SultanBefore(play)){V04.Data(play.Player).RebellionTriggers++;await V04.TriggerAll(ctx,play.Player);}
     }
 }
-public sealed class PerfectWorldPower():ArtuPower("完美世界","苏丹免代价；非苏丹牌0费并在使用后消耗，每张因此消耗时全体6伤害。")
+public sealed class PerfectWorldPower():ArtuPower("完美世界","每回合第一张主动使用牌决定互斥路线：苏丹牌→本回合苏丹免代价；非苏丹牌→本回合非苏丹牌0费、使用后消耗。自动使用和重放不改变路线；不追溯此前效果。")
 {
-    public override bool TryModifyEnergyCostInCombat(CardModel card,decimal original,out decimal modified){modified=original;if(card.Owner!=Owner.Player||card is SultanCard)return false;modified=0;return true;}
+    public static bool SultanRoute(Player p)=>p.Creature.HasPower<PerfectWorldPower>()&&SultanUsage.FirstManualIsSultan(p)==true;
+    public override bool TryModifyEnergyCostInCombat(CardModel card,decimal original,out decimal modified)
+    {modified=original;if(card.Owner!=Owner.Player||card is SultanCard||SultanUsage.FirstManualIsSultan(card.Owner)==true)return false;modified=0;return true;}
     public override CardLocation ModifyCardPlayResultLocation(CardModel card,bool auto,ResourceInfo resources,CardLocation location)
-        =>card.Owner==Owner.Player&&card is not SultanCard?new CardLocation(location.player,PileType.Exhaust,location.position):location;
-    public override async Task AfterCardExhausted(PlayerChoiceContext ctx,CardModel card,bool ethereal)
-    {if(card.Owner!=Owner.Player||card is SultanCard||!V04Replay.Purified.Remove(card))return;await CreatureCmd.Damage(ctx,Util.Enemies(card.Owner).ToArray(),6,ValueProp.Unpowered,Owner);}
-    public override Task BeforeCardPlayed(CardPlay play){if(play.Player==Owner.Player&&play.Card is not SultanCard)V04Replay.Purified.Add(play.Card);return Task.CompletedTask;}
+        =>card.Owner==Owner.Player&&card is not SultanCard&&(SultanUsage.FirstManualIsSultan(card.Owner)==false||!auto&&SultanUsage.FirstManualIsSultan(card.Owner)==null)?new CardLocation(location.player,PileType.Exhaust,location.position):location;
 }
 public sealed class RegicidePower():ArtuPower("弑君的计划","每回合结束额外结算所有兵种2次。")
 {
@@ -193,14 +192,13 @@ public static class V04Replay
 {
     public sealed class Series {public bool Auto;public int FreeFrom=int.MaxValue,Bonus;public bool Charged;}
     static readonly ConditionalWeakTable<CardModel,Series> SeriesByCard=new();
-    public static readonly HashSet<CardModel> Purified=[];
     public static Series SeriesFor(CardModel c)=>SeriesByCard.GetOrCreateValue(c);
     public static void Begin(CardModel c,bool auto){SeriesByCard.Remove(c);SeriesFor(c).Auto=auto;}
     public static bool Exempt(CardPlay play)=>SeriesFor(play.Card).Bonus>0&&play.PlayIndex>=SeriesFor(play.Card).FreeFrom;
-    public static bool Free(SultanCard card,CardPlay? play=null)=>BeckyController.Active(card.Owner)||V04.Data(card.Owner).Grace||card.Owner.Creature.HasPower<PerfectWorldPower>()||play!=null&&Exempt(play);
+    public static bool Free(SultanCard card,CardPlay? play=null)=>BeckyController.Active(card.Owner)||V04.Data(card.Owner).Grace||PerfectWorldPower.SultanRoute(card.Owner)||play!=null&&Exempt(play);
 }
 [HarmonyPatch(typeof(CardModel),nameof(CardModel.OnPlayWrapper))]
-static class V04SeriesStart {static void Prefix(CardModel __instance,bool isAutoPlay)=>V04Replay.Begin(__instance,isAutoPlay);}
+static class V04SeriesStart {static void Prefix(CardModel __instance,bool isAutoPlay){V04Replay.Begin(__instance,isAutoPlay);if(!isAutoPlay)SultanUsage.RecordManualStart(__instance);}}
 [HarmonyPatch(typeof(Hook),nameof(Hook.ModifyCardPlayCount))]
 static class V04FaithReplays
 {

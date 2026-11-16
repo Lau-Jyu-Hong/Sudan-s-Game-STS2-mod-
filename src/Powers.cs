@@ -169,14 +169,16 @@ public sealed class WarSongPower():ArtuPower("强军战歌","每回合开始时�
 {
     public override Task AfterPlayerTurnStart(PlayerChoiceContext ctx,Player p)=>p==Owner.Player?ArmyPower.Gain(ctx,p,2,Amount):Task.CompletedTask;
 }
-public sealed class CrimePower():ArtuPower("罪证","跨战斗保存，不随胜利自然减少。有罪证时，可在休息处消耗一次行动移除1层。各档惩罚累计：\n1：卡牌伤害−1。\n2：卡牌格挡−1。\n3：每回合开始少抽1张牌。\n4：自然能量−1。\n5：每回合首张非苏丹牌+1费。\n6：每回合首张非苏丹牌后加入1张晕眩。\n7：第4张及以后非苏丹牌额外随机弃1张。\n8：每张非苏丹牌后加入1张晕眩（替代第6档）。",PowerType.Debuff)
+public sealed class CrimePower():ArtuPower("罪证","跨战斗保存，不随胜利自然减少。有罪证时，可在休息处消耗一次行动移除1层。各档惩罚累计：\n1：卡牌伤害−1。\n2：卡牌格挡−1。\n3：每回合开始少抽1张牌。\n4：自然能量−1。\n5：每回合首张抽到的非苏丹牌本回合+1费。\n6：每回合首张非苏丹牌后加入1张晕眩。\n7：第4张及以后非苏丹牌额外随机弃1张。\n8：每张非苏丹牌后加入1张晕眩（替代第6档）。",PowerType.Debuff)
 {
+    int taxedTurn=-1;
+    protected override void DeepCloneFields(){base.DeepCloneFields();taxedTurn=-1;}
     public override decimal ModifyDamageAdditive(Creature? target,decimal amount,ValueProp props,Creature? dealer,CardModel? card,CardPlay? play)=>dealer==Owner&&card!=null&&!props.HasFlag(ValueProp.Unpowered)&&Amount>=1?-1:0;
     public override decimal ModifyBlockAdditive(Creature target,decimal amount,ValueProp props,CardModel? card,CardPlay? play)=>target==Owner&&card!=null&&Amount>=2?-1:0;
     public override decimal ModifyHandDraw(Player p,decimal count)=>p==Owner.Player&&Amount>=3?count-1:count;
     public override decimal ModifyEnergyGain(Player p,decimal amount)=>p==Owner.Player&&Amount>=4?amount-1:amount;
-    public override bool TryModifyEnergyCostInCombat(CardModel card,decimal original,out decimal modified)
-    {modified=original;if(Amount<5||card.Owner!=Owner.Player||card is SultanCard||card.EnergyCost.CostsX||original<0||SultanUsage.NonSultanThisTurn(card.Owner)>0)return false;modified=original+1;return true;}
+    public override Task AfterCardDrawnEarly(PlayerChoiceContext ctx,CardModel card,bool fromHandDraw)
+    {int turn=Owner.Player!.PlayerCombatState!.TurnNumber;if(Amount<5||card.Owner!=Owner.Player||card is SultanCard||taxedTurn==turn)return Task.CompletedTask;taxedTurn=turn;if(!card.EnergyCost.CostsX&&card.EnergyCost.GetWithModifiers(CostModifiers.All)>=0){card.EnergyCost.AddThisTurn(1);card.InvokeEnergyCostChanged();}return Task.CompletedTask;}
     public override async Task AfterCardPlayed(PlayerChoiceContext ctx,CardPlay play)
     {
         if(play.Player!=Owner.Player||play.Card is SultanCard)return;

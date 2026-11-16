@@ -11,14 +11,14 @@ public static class SmokeTests
         Check("Artu character registered",()=>ModelDb.AllCharacters.Any(c=>c is Artu));
         Check("10-card starter deck, two of each suit",()=>ModelDb.Character<Artu>().StartingDeck.Count()==10&&ModelDb.Character<Artu>().StartingDeck.OfType<SultanCard>().GroupBy(c=>c.Suit).All(g=>g.Count()==2));
         Check("16 Sultan classes registered",()=>ModelDb.All.OfType<SultanCard>().Count()==16);
-        Check("Sultan independent mutable deadlines",()=>{var a=(SultanCard)ModelDb.Card<StoneSlaughter>().ToMutable();var b=(SultanCard)ModelDb.Card<StoneSlaughter>().ToMutable();a.BattlesRemaining=1;return b.BattlesRemaining==3;});
+        Check("Sultan independent mutable deadlines",()=>{var a=(SultanCard)ModelDb.Card<StoneSlaughter>().ToMutable();var b=(SultanCard)ModelDb.Card<StoneSlaughter>().ToMutable();a.BattlesRemaining=1;return b.BattlesRemaining==5;});
         Check("All Sultan non-upgradable and protected",()=>ModelDb.All.OfType<SultanCard>().All(c=>c.MaxUpgradeLevel==0&&c.CanonicalKeywords.Contains(CardKeyword.Eternal)));
         Check("Readings/thoughts never upgrade",()=>ModelDb.All.OfType<ArtuCard>().Where(c=>c.Reading||c.Thought).All(c=>c.MaxUpgradeLevel==0));
         Check("FlowingThoughts is not thought",()=>!ModelDb.Card<FlowingThoughts>().Thought);
         Check("Latest gold cards save counters",()=>typeof(SultanCard).GetProperty(nameof(SultanCard.TurnsSinceUse))!.GetCustomAttribute<SavedPropertyAttribute>()!=null);
         Check("Mockery floor at 9 stacks",()=>Rules.HpCeiling(73,9)==7);
         Check("Mockery 10 stacks always zero",()=>Enumerable.Range(1,1000).All(hp=>Rules.HpCeiling(hp,10)==0));
-        Check("Gold deck and turn deadlines",()=>Rules.BattleDeadline(SultanGrade.Gold)==1);
+        Check("Sultan deck and turn deadlines",()=>Rules.BattleDeadline(SultanGrade.Stone)==5&&Rules.BattleDeadline(SultanGrade.Bronze)==3&&Rules.BattleDeadline(SultanGrade.Silver)==1&&Rules.BattleDeadline(SultanGrade.Gold)==1&&Rules.GoldTurnDeadline==5);
         Check("Forced Sultan priority releases ordinary cards",()=>!Rules.PrioritizeSultan(true,true,false)&&Rules.PrioritizeSultan(true,false,false));
         Check("Chivalry counts actual non-overkill life loss",()=>Rules.AdvancedTroopsFromDamage(4,0)==0&&Rules.AdvancedTroopsFromDamage(30,12)==3);
         Check("Character localization present",()=>ModelDb.Character<Artu>().Title.GetFormattedText().Contains("阿尔图"));
@@ -40,6 +40,7 @@ public static class SmokeTests
         Check("Defense supplement gameplay integration",()=>{checks.AddRange(DefenseSupplementVerification.Run());return true;});
         Check("Repair verification",()=>{checks.AddRange(RepairVerification.Run());return true;});
         Check("Second batch verification",()=>{checks.AddRange(SecondBatchVerification.Run());return true;});
+        Check("v0.4.3 incremental verification",()=>{checks.AddRange(V046Verification.Run());return true;});
         Directory.CreateDirectory(System.IO.Path.GetDirectoryName(output)!);
         var pool=ModelDb.Character<Artu>().CardPool.GetUnlockedCards(MegaCrit.Sts2.Core.Unlocks.UnlockState.all,CardMultiplayerConstraint.SingleplayerOnly).OfType<ArtuCard>().Where(c=>c.Rarity is CardRarity.Common or CardRarity.Uncommon or CardRarity.Rare).OrderBy(c=>c.Rarity).ThenBy(c=>c.Id.ToString()).Select(c=>new{id=c.Id.ToString(),name=c.Title,rarity=c.Rarity.ToString(),type=c.Type.ToString(),energy=c.EnergyCost.Canonical,upgradable=c.MaxUpgradeLevel>0,c.Reading,c.Thought,c.CanBeGeneratedInCombat,c.CanBeGeneratedByModifiers,description=c.Description.GetFormattedText()});
         File.WriteAllText(System.IO.Path.Combine(System.IO.Path.GetDirectoryName(output)!,"registered-pool.json"),JsonSerializer.Serialize(pool,new JsonSerializerOptions{WriteIndented=true}));

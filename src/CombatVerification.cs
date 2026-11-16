@@ -58,7 +58,7 @@ public static class CombatVerification
             state.TickGold(ctx).GetAwaiter().GetResult();
             Check("Gold timer carries accumulated own turns",goldCard.TurnsSinceUse==2);
             goldCard.UsedThisTurn=true;AccessTools.Property(typeof(PlayerCombatState),"TurnNumber").SetValue(p.PlayerCombatState,3);
-            state.TickGold(ctx).GetAwaiter().GetResult();Check("Gold successful use resets three-turn counter",goldCard.TurnsSinceUse==0);
+            state.TickGold(ctx).GetAwaiter().GetResult();Check("Gold successful use resets five-turn counter",goldCard.TurnsSinceUse==0);
             var blocked=(SultanCard)combat.CreateCard(ModelDb.Card<StoneConquest>(),p);
             CreatureCmd.LoseBlock(ctx,p.Creature,p.Creature.Block,p.Creature).GetAwaiter().GetResult();
             Check("Zero block cannot pay stone conquest",!blocked.CanPayAny());

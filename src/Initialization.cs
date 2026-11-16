@@ -15,6 +15,10 @@ public static class RegisterArtuUi
         var selection=(Dictionary<string,string>)AccessTools.Field(typeof(LocTable),"_translations").GetValue(LocManager.Instance.GetTable("card_selection"))!;
         selection["ARTU_CHOOSE"]="选择一张牌。";
         selection["ARTU_SULTAN_TO_HAND"]="选择一张苏丹牌加入手牌。";
+        var gameplay=(Dictionary<string,string>)AccessTools.Field(typeof(LocTable),"_translations").GetValue(LocManager.Instance.GetTable("gameplay_ui"))!;
+        gameplay["ARTU_RETAIN"]="保留当前思潮：{Thought}（保留进化资格）";
+        gameplay["ARTU_EVOLVE"]="完成思潮进化：{Thought} → {Next}";
+        gameplay["ARTU_FORGIVE"]="请求宽恕：免费永久清除1层苏丹之怒";
         var cards=(Dictionary<string,string>)AccessTools.Field(typeof(LocTable),"_translations").GetValue(LocManager.Instance.GetTable("cards"))!;
         foreach(var model in ModelDb.All.OfType<ArtuCard>())cards[model.Id.Entry+".selectionScreenPrompt"]="选择卡牌。";
         var badges=(Dictionary<string,string>)AccessTools.Field(typeof(LocTable),"_translations").GetValue(LocManager.Instance.GetTable("badges"))!;

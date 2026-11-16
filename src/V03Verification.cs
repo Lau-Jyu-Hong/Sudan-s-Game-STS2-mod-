@@ -187,14 +187,14 @@ public static class V03Verification
             {
                 f.State.PureSecond=3;f.State.DarkSecond=3;f.AddDeck<TouchPurity>();f.AddDeck<GlimpseDarkness>();int count=f.Player.Deck.Cards.Count;
                 f.Await(Thoughts.ResolveSecond(f.Player,f.State,f.Context));
-                Check("v03 purity/secret insight mutually block end-of-combat generation",f.Player.Deck.Cards.Count==count&&!f.Player.Deck.Cards.Any(c=>c is AtonementPrayer or AncientFaith));
+                Check("v03 purity/secret insight mutually block end-of-combat qualification",f.Player.Deck.Cards.Count==count&&!f.Player.Deck.Cards.Any(c=>c is AtonementPrayer or AncientFaith)&&!EvolutionRewards.Qualified(f.State,3)&&!EvolutionRewards.Qualified(f.State,4));
                 Check("v03 resolved second counters cannot duplicate future event rewards",f.State.PureSecond==0&&f.State.DarkSecond==0);
             }
             using(var f=new Fixture())
             {
                 f.State.PureSecond=3;f.AddDeck<TouchPurity>();f.AddDeck<TouchPurity>();
                 f.Await(Thoughts.ResolveSecond(f.Player,f.State,f.Context));
-                Check("v03 purity evolution removes all originals and grants usable next tier",!f.Player.Deck.Cards.Any(c=>c is TouchPurity)&&f.Player.Deck.Cards.Count(c=>c is AtonementPrayer)==1);
+                Check("v03 purity earns persistent choice without automatically evolving",f.Player.Deck.Cards.Count(c=>c is TouchPurity)==2&&!f.Player.Deck.Cards.Any(c=>c is AtonementPrayer)&&EvolutionRewards.Qualified(f.State,3));
             }
             using(var f=new Fixture())
             {

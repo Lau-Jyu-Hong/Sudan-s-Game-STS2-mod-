@@ -68,6 +68,9 @@ public static class Lab
             _ = MegaCrit.Sts2.Core.Helpers.TaskHelper.RunSafely(AlphaPromoScenario.Run(reportDirectory));return;
         }
         if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ARTU_V04_SCENARIO"))) {
+            if(Environment.GetEnvironmentVariable("ARTU_V04_SCENARIO")=="evolution"){
+                _ = MegaCrit.Sts2.Core.Helpers.TaskHelper.RunSafely(EvolutionScenario.Run(reportDirectory));return;
+            }
             if(Environment.GetEnvironmentVariable("ARTU_V04_SCENARIO")=="second-batch"){
                 _ = MegaCrit.Sts2.Core.Helpers.TaskHelper.RunSafely(SecondBatchScenario.Run(reportDirectory));return;
             }

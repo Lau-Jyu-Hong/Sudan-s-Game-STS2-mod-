@@ -118,15 +118,15 @@ public sealed class RoyalConscription():RewardCard(2,CardType.Power,CardRarity.R
     protected override void OnUpgrade()=>DynamicVars["Troops"].UpgradeValueBy(1);
 }
 public abstract class ThirdThought(string title,string text):RewardCard(1,CardType.Power,CardRarity.Rare,TargetType.Self,title,"[gold]思潮[/gold]\n"+text){public override bool Thought=>true;}
-public sealed class AtonementPrayer():ThirdThought("赎罪祈愿","永久移除1罪证。每回合首抽非苏丹牌本回合0费。使用后胜利时无罪证且未新增苏丹之怒，虔信+1；累计3进化为完美世界。")
+public sealed class AtonementPrayer():ThirdThought("赎罪祈愿","永久移除1罪证。每回合首抽非苏丹牌本回合0费。使用后胜利时无罪证且未新增苏丹之怒，虔信+1；累计3取得进化资格，奖励可选择保留或进化为完美世界。")
 {protected override async Task OnPlay(PlayerChoiceContext ctx,CardPlay play){await V04.RemoveCrime(ctx,Owner,1);await AddPower<AtonementPower>(ctx,1);}}
-public sealed class AncientFaith():ThirdThought("古老的信仰","每回合第一次主动使用苏丹牌后额外失去2HP，并免代价重放1次。使用后本场使用至少两类苏丹牌获胜，狂信+1；累计3进化为新世界。")
+public sealed class AncientFaith():ThirdThought("古老的信仰","每回合第一次主动使用苏丹牌后额外失去2HP，并免代价重放1次。使用后本场使用至少两类苏丹牌获胜，狂信+1；累计3取得进化资格，奖励可选择保留或进化为新世界。")
 {protected override Task OnPlay(PlayerChoiceContext ctx,CardPlay play)=>AddPower<AncientFaithPower>(ctx,1);}
-public sealed class RebellionIntent():ThirdThought("谋反的意图","每回合首次使用其他非苏丹牌时获得1锐士；此前本回合未用苏丹牌时，额外结算所有兵种1次。使用后本场触发至少2次额外结算而获胜，谋逆+1；累计3进化为弑君的计划。")
+public sealed class RebellionIntent():ThirdThought("谋反的意图","每回合首次使用其他非苏丹牌时获得1锐士；此前本回合未用苏丹牌时，额外结算所有兵种1次。使用后本场触发至少2次额外结算而获胜，谋逆+1；累计3取得进化资格，奖励可选择保留或进化为弑君的计划。")
 {protected override Task OnPlay(PlayerChoiceContext ctx,CardPlay play)=>AddPower<RebellionIntentPower>(ctx,1);}
 public abstract class FinalThought(int cost,CardType type,string title,string text):RewardCard(cost,type,CardRarity.Ancient,TargetType.Self,title,"[gold]思潮[/gold]\n"+text)
 {public override bool Thought=>true;public override bool CanBeGeneratedInCombat=>false;public override bool CanBeGeneratedByModifiers=>false;}
-public sealed class PerfectWorld():FinalThought(1,CardType.Power,"完美世界","本场苏丹牌免代价；非苏丹牌0费并在使用后消耗，每因此消耗1张，对所有敌人造成6伤害。")
+public sealed class PerfectWorld():FinalThought(1,CardType.Power,"完美世界","每回合按第一张主动使用牌决定路线：若为苏丹牌，本回合苏丹牌免代价；若为非苏丹牌，本回合非苏丹牌0费、使用后消耗。两者互斥；不追溯此前费用或效果，自动使用与重放不改变路线。")
 {protected override Task OnPlay(PlayerChoiceContext ctx,CardPlay play)=>AddPower<PerfectWorldPower>(ctx,1);}
 public sealed class NewWorld():FinalThought(1,CardType.Power,"新世界","每回合首次主动用苏丹牌后失去3HP，免代价重放2次，然后抽2张牌并获得1能量。")
 {protected override Task OnPlay(PlayerChoiceContext ctx,CardPlay play)=>AddPower<NewWorldPower>(ctx,1);}

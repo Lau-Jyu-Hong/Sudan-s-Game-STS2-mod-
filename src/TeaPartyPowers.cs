@@ -73,7 +73,7 @@ public sealed class RequisitionPower():ArtuPower("军需管制","下回合首次
     }
 }
 
-public abstract class EnemyArmyPower(string name,string description):ArtuPower(name,description)
+public abstract class EnemyArmyPower(string name,string description):ArtuPower(name,description+"\n兵种伤害和格挡不受力量、敏捷、虚弱、易伤、脆弱、活力影响；可被格挡。")
 {
     public abstract int Kind { get; }
     public override async Task BeforeSideTurnEnd(PlayerChoiceContext ctx,CombatSide side,IEnumerable<Creature> participants)
@@ -83,9 +83,16 @@ public abstract class EnemyArmyPower(string name,string description):ArtuPower(n
         if(Owner.IsDead||Owner.Monster is not TeaMercenaryCaptain captain)return;
         if(Kind==2&&Amount>=3)await PowerCmd.Apply<VigorPower>(ctx,Owner,5,Owner,null);
         // FromMonster targets all players. Counts/damage do not get another multiplayer multiplier.
-        await DamageCmd.Attack(Amount*(Kind==3?4:2)).FromMonster(captain)
+        await DamageCmd.Attack(Amount*(Kind==3?4:2)).FromMonster(captain).Unpowered()
             .WithAttackerAnim("AttackSword",0.25f).Execute(ctx);
-        if(Kind==1)await CreatureCmd.GainBlock(Owner,Amount,ValueProp.Move,null);
+        if(Kind==1)
+        {
+            // Unpowered skips the native powered-block scaler as well as Dexterity/Frail.
+            // Preserve that scaler explicitly, exactly once, without re-enabling generic stats.
+            var state=Owner.CombatState!;int count=state.RunState.Players.Count;
+            decimal scale=(Owner.IsPrimaryEnemy||Owner.IsSecondaryEnemy)?(count<=2?count:count*MegaCrit.Sts2.Core.Models.Singleton.MultiplayerScalingModel.GetMultiplayerScaling(state.Encounter,state.RunState.CurrentActIndex)):1;
+            await CreatureCmd.GainBlock(Owner,Amount*scale,ValueProp.Unpowered,null);
+        }
         if(Kind==2)
         {
             foreach(var target in Owner.CombatState!.PlayerCreatures.Where(c=>!c.IsDead).ToArray())
@@ -97,5 +104,5 @@ public abstract class EnemyArmyPower(string name,string description):ArtuPower(n
     }
 }
 public sealed class EnemySoldierPower():EnemyArmyPower("敌方士兵","敌方回合结束时，对所有玩家造成2×{Amount}伤害，队长获得{Amount}基础格挡；格挡按人数缩放。"){public override int Kind=>1;}
-public sealed class EnemyVeteranPower():EnemyArmyPower("敌方精兵","敌方回合结束时，对所有玩家造成2×{Amount}伤害。3层：攻击前5活力；6层：对所有玩家施加1易伤；9层：再施加1虚弱。"){public override int Kind=>2;}
+public sealed class EnemyVeteranPower():EnemyArmyPower("敌方精兵","敌方回合结束时，对所有玩家造成2×{Amount}伤害。3层：获得5活力（不增强兵种）；6层：对所有玩家施加1易伤；9层：再施加1虚弱。"){public override int Kind=>2;}
 public sealed class EnemyElitePower():EnemyArmyPower("敌方锐士","敌方回合结束时，对所有玩家造成4×{Amount}伤害。"){public override int Kind=>3;}

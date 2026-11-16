@@ -72,14 +72,24 @@ public static class TeaPartyVerification
                 Await(((TeaMercenaryCaptain)captain.Monster!).Recruit(2));
                 Await(((TeaMercenaryCaptain)captain.Monster!).Recruit(3));
                 Check($"Tea {count}p first recruitment cycle base damage 16",((TeaMercenaryCaptain)captain.Monster!).ProjectedDamage(0)==16);
+                Await(PowerCmd.Apply<StrengthPower>(ctx,captain,20,captain,null));Await(PowerCmd.Apply<DexterityPower>(ctx,captain,20,captain,null));
+                Await(PowerCmd.Apply<WeakPower>(ctx,captain,1,captain,null));Await(PowerCmd.Apply<FrailPower>(ctx,captain,1,captain,null));
+                foreach(var player in players)Await(PowerCmd.Apply<VulnerablePower>(ctx,player.Creature,1,captain,null));
+                var troopIntent=new TroopAttackIntent(()=>((TeaMercenaryCaptain)captain.Monster!).ProjectedDamage(0));
+                Check($"Tea {count}p fixed troop intent ignores common stats",troopIntent.GetTotalDamage(combat.PlayerCreatures,captain)==16);
+                before=players.Select(p=>p.Creature.CurrentHp).ToArray();beforeBlock=captain.Block;Await(soldiers.Trigger(ctx));
+                Check($"Tea {count}p enemy troop ignores common stats",players.Select((p,i)=>before[i]-p.Creature.CurrentHp).All(n=>n==4));
+                Check($"Tea {count}p enemy troop block still scales once not dex/frail",captain.Block-beforeBlock==new[]{2,4,7,9}[count-1]);
+                Await(PowerCmd.Remove<StrengthPower>(captain));Await(PowerCmd.Remove<DexterityPower>(captain));Await(PowerCmd.Remove<WeakPower>(captain));Await(PowerCmd.Remove<FrailPower>(captain));
+                foreach(var player in players)Await(PowerCmd.Remove<VulnerablePower>(player.Creature));
                 int plate=captain.GetPowerAmount<PlatingPower>();Await(((TeaMercenaryCaptain)captain.Monster!).Expand());
                 Check($"Tea {count}p expansion grows recruits and plating once",((TeaMercenaryCaptain)captain.Monster!).RecruitCount==3&&captain.GetPowerAmount<PlatingPower>()-plate==new[]{2,6,10,14}[count-1]);
                 Await(PowerCmd.ModifyAmount(ctx,captain.GetPower<EnemyVeteranPower>()!,7,captain,null));
                 // No existing vulnerability/weakness: all nine veterans should hit each player for 18+5.
                 before=players.Select(p=>p.Creature.CurrentHp).ToArray();
                 Await(captain.GetPower<EnemyVeteranPower>()!.Trigger(ctx));
-                Check($"Tea {count}p veteran vigor and thresholds affect whole team",players.Select((p,i)=>before[i]-p.Creature.CurrentHp).All(n=>n==23)&&
-                    players.All(p=>p.Creature.GetPowerAmount<VulnerablePower>()==1&&p.Creature.GetPowerAmount<WeakPower>()==1)&&!captain.HasPower<VigorPower>());
+                Check($"Tea {count}p veteran fixed damage and thresholds affect whole team",players.Select((p,i)=>before[i]-p.Creature.CurrentHp).All(n=>n==18)&&
+                    players.All(p=>p.Creature.GetPowerAmount<VulnerablePower>()==1&&p.Creature.GetPowerAmount<WeakPower>()==1)&&captain.GetPowerAmount<VigorPower>()==5);
                 foreach(var player in players)
                 {
                     Await(PowerCmd.Remove<VulnerablePower>(player.Creature));Await(PowerCmd.Remove<WeakPower>(player.Creature));

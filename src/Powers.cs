@@ -5,8 +5,8 @@ public abstract class ArtuPower(string name,string description,PowerType type=Po
     public override PowerStackType StackType=>PowerStackType.Counter;
     public override List<(string,string)> Localization=>new PowerLoc(name,ArtuTerms.Highlight(description),ArtuTerms.Highlight(description));
     protected override IEnumerable<MegaCrit.Sts2.Core.HoverTips.IHoverTip> ExtraHoverTips=>ArtuTerms.Tips(description,ArtuTerms.OwnerOf(this));
-    // Private test probes are not playable statuses and keep their native fallback.
-    public override string CustomPackedIconPath=>GetType().IsPublic?"res://ArtuMod/images/status/"+GetType().Name.ToLowerInvariant()+".tres":ModelDb.Power<StrengthPower>().PackedIconPath;
+    // Test probes are not playable statuses and keep their native fallback.
+    public override string CustomPackedIconPath=>GetType().Name.EndsWith("Power",StringComparison.Ordinal)?"res://ArtuMod/images/status/"+GetType().Name.ToLowerInvariant()+".tres":ModelDb.Power<StrengthPower>().PackedIconPath;
     public override string CustomBigIconPath=>CustomPackedIconPath;
 }
 public sealed class PassPower():ArtuPower("御用通行","本回合下一张苏丹牌免除代价。")
@@ -78,7 +78,7 @@ public sealed class SiegeBoulderPower():ArtuPower("苏丹的滚石","敌方回�
         await PowerCmd.ModifyAmount(ctx,this,5,null,null);
     }
 }
-public abstract class ArmyPower(string name,string description):ArtuPower(name,description)
+public abstract class ArmyPower(string name,string description):ArtuPower(name,description+"\n兵种伤害和格挡不受力量、敏捷、虚弱、易伤、脆弱、活力影响；可被格挡。")
 {
     public abstract int Kind {get;}
     public override async Task BeforeSideTurnEnd(PlayerChoiceContext ctx,CombatSide side,IEnumerable<Creature> participants)
@@ -102,10 +102,9 @@ public abstract class ArmyPower(string name,string description):ArtuPower(name,d
         {
             target=Util.RandomEnemy(p);if(target==null)break;
             if(kind==0&&Owner.HasPower<AllArmyPower>())
-                await CreatureCmd.Damage(ctx,Util.Enemies(p).ToArray(),damage,ValueProp.Move,Owner);
-            else await CreatureCmd.Damage(ctx,target,damage,ValueProp.Move,Owner);
-            // Each layer attacks separately. Vigor belongs to the first attack, not every soldier.
-            if(Owner.HasPower<VigorPower>())await PowerCmd.Remove<VigorPower>(Owner);
+                await CreatureCmd.Damage(ctx,Util.Enemies(p).ToArray(),damage,ValueProp.Unpowered,Owner);
+            else await CreatureCmd.Damage(ctx,target,damage,ValueProp.Unpowered,Owner);
+            // Troops use fixed unpowered values; they neither use nor consume the owner's Vigor.
         }
         if(kind==1)await CreatureCmd.GainBlock(Owner,amount,ValueProp.Unpowered,null);
         if(kind==3&&interchange!=null&&CountAs(p,1)>0)await CreatureCmd.GainBlock(Owner,amount*interchange.Amount,ValueProp.Unpowered,null);
@@ -156,7 +155,7 @@ public abstract class ArmyPower(string name,string description):ArtuPower(name,d
 }
 public sealed class LevyPower():ArmyPower("杂兵","回合结束时，每层对随机敌人造成2伤害。"){public override int Kind=>0;}
 public sealed class SoldierPower():ArmyPower("士兵","回合结束时，每层对随机敌人造成2伤害，获得{Amount}格挡。"){public override int Kind=>1;}
-public sealed class VeteranPower():ArmyPower("精兵","回合结束时，每层对随机敌人造成2伤害。3层：出击前5活力；6层：1易伤；9层：1虚弱，各档每次结算一次。"){public override int Kind=>2;}
+public sealed class VeteranPower():ArmyPower("精兵","回合结束时，每层对随机敌人造成2伤害。3层：获得5活力（不增强兵种）；6层：1易伤；9层：1虚弱，各档每次结算一次。"){public override int Kind=>2;}
 public sealed class ElitePower():ArmyPower("锐士","回合结束时，每层对随机敌人造成4伤害。"){public override int Kind=>3;}
 public sealed class AllArmyPower():ArtuPower("全军出击","杂兵攻击所有敌人。");
 public sealed class GloryPower():ArtuPower("追忆过去的荣光","生成杂兵时，改为等量随机高级兵种。");
@@ -170,7 +169,7 @@ public sealed class WarSongPower():ArtuPower("强军战歌","每回合开始时�
 {
     public override Task AfterPlayerTurnStart(PlayerChoiceContext ctx,Player p)=>p==Owner.Player?ArmyPower.Gain(ctx,p,2,Amount):Task.CompletedTask;
 }
-public sealed class CrimePower():ArtuPower("罪证","跨战斗保存；胜利后自然移除1层，最低0。各档惩罚累计：\n1：卡牌伤害−1。\n2：卡牌格挡−1。\n3：每回合开始少抽1张牌。\n4：自然能量−1。\n5：每回合首张非苏丹牌+1费。\n6：每回合首张非苏丹牌后加入1张晕眩。\n7：第4张及以后非苏丹牌额外随机弃1张。\n8：每张非苏丹牌后加入1张晕眩（替代第6档）。",PowerType.Debuff)
+public sealed class CrimePower():ArtuPower("罪证","跨战斗保存，不随胜利自然减少。有罪证时，可在休息处消耗一次行动移除1层。各档惩罚累计：\n1：卡牌伤害−1。\n2：卡牌格挡−1。\n3：每回合开始少抽1张牌。\n4：自然能量−1。\n5：每回合首张非苏丹牌+1费。\n6：每回合首张非苏丹牌后加入1张晕眩。\n7：第4张及以后非苏丹牌额外随机弃1张。\n8：每张非苏丹牌后加入1张晕眩（替代第6档）。",PowerType.Debuff)
 {
     public override decimal ModifyDamageAdditive(Creature? target,decimal amount,ValueProp props,Creature? dealer,CardModel? card,CardPlay? play)=>dealer==Owner&&card!=null&&!props.HasFlag(ValueProp.Unpowered)&&Amount>=1?-1:0;
     public override decimal ModifyBlockAdditive(Creature target,decimal amount,ValueProp props,CardModel? card,CardPlay? play)=>target==Owner&&card!=null&&Amount>=2?-1:0;

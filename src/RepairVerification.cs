@@ -64,13 +64,27 @@ public static class RepairVerification
                 var card=f.Card<Quickfoot>();int hp=f.Enemy.CurrentHp;f.Play(card);Check("quickfoot base 3 damage and block",hp-f.Enemy.CurrentHp==3&&f.Player.Creature.Block==3);
                 CardCmd.Upgrade(card);hp=f.Enemy.CurrentHp;f.Play(card);Check("quickfoot upgraded 5 damage and block",hp-f.Enemy.CurrentHp==5&&f.Player.Creature.Block==8);
                 f.Apply<CrimePower>(1);f.Play<AtonementPrayer>();f.Apply<CrimePower>(1);
-                f.Await(V04.Victory(f.Player,f.Context));Check("devotion checked before natural crime decay",f.State.Devotion==0&&f.State.Crime==0);
+                f.Await(V04.Victory(f.Player,f.Context));Check("devotion requires actual zero crime; victory keeps crime",f.State.Devotion==0&&f.State.Crime==1);
                 f.Await(V04.Victory(f.Player,f.Context));Check("victory progression not repeated",f.State.Devotion==0);
             }
             using(var f=new V04Verification.Fixture())
             {
-                f.Apply<CrimePower>(3);f.Await(V04.Victory(f.Player,f.Context));Check("victory removes exactly one saved crime",f.State.Crime==2&&f.Player.Creature.GetPowerAmount<CrimePower>()==2);
-                var saved=(WitchCardBox)RelicModel.FromSerializable(f.State.ToSerializable());Check("crime decay roundtrips save",saved.Crime==2);
+                f.Apply<CrimePower>(3);f.Await(V04.Victory(f.Player,f.Context));Check("victory does not remove crime",f.State.Crime==3&&f.Player.Creature.GetPowerAmount<CrimePower>()==3);
+                var saved=(WitchCardBox)RelicModel.FromSerializable(f.State.ToSerializable());Check("persistent crime roundtrips save",saved.Crime==3);
+                var options=new List<MegaCrit.Sts2.Core.Entities.RestSite.RestSiteOption>();f.State.TryModifyRestSiteOptions(f.Player,options);
+                Check("rest adds enabled crime option only when positive",options.OfType<ClearCrimeOption>().Single().IsEnabled);
+                f.Await(options.OfType<ClearCrimeOption>().Single().OnSelect());Check("rest spends one saved crime",f.State.Crime==2&&f.Player.Creature.GetPowerAmount<CrimePower>()==2);
+                f.Await(V04.RemoveCrime(f.Context,f.Player,2));options.Clear();f.State.TryModifyRestSiteOptions(f.Player,options);
+                Check("zero crime has no extra rest option",!options.OfType<ClearCrimeOption>().Any());
+            }
+            foreach(int kind in Enumerable.Range(0,4))foreach(int sign in new[]{-1,1})using(var f=new V04Verification.Fixture())
+            {
+                f.Gain(kind,2);f.Apply<StrengthPower>(sign*20);f.Apply<DexterityPower>(sign*20);f.Apply<VigorPower>(10);f.Apply<WeakPower>(1);f.Apply<FrailPower>(1);
+                f.Await(PowerCmd.Apply<VulnerablePower>(f.Context,f.Enemy,1,f.Player.Creature,null));
+                int hp=f.Enemy.CurrentHp;f.Await(ArmyPower.All(f.Player).Single().Trigger(f.Context));
+                Check($"troop {kind} ignores stats sign {sign}",hp-f.Enemy.CurrentHp==(kind==3?8:4));
+                Check($"troop {kind} block ignores dexterity and frail sign {sign}",f.Player.Creature.Block==(kind==1?2:0));
+                Check($"troop {kind} does not consume vigor sign {sign}",f.Player.Creature.GetPowerAmount<VigorPower>()==10);
             }
             foreach(var model in ModelDb.All.OfType<ArtuCard>())
             {

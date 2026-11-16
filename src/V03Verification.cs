@@ -134,7 +134,7 @@ public static class V03Verification
                 var special=f.Player.Creature.GetPower<ArmySpecializationPower>()!;special.FormationKind=2;
                 int hp=f.Enemy.CurrentHp;
                 foreach(var army in ArmyPower.All(f.Player).ToArray())f.Await(army.BeforeSideTurnEnd(f.Context,CombatSide.Player,[f.Player.Creature]));
-                Check("v03 specialization combines advanced troops and resolves only once",hp-f.Enemy.CurrentHp==17&&f.Enemy.GetPowerAmount<VulnerablePower>()==1);
+                Check("v03 specialization combines advanced troops and resolves fixed damage once",hp-f.Enemy.CurrentHp==12&&f.Enemy.GetPowerAmount<VulnerablePower>()==1&&f.Player.Creature.GetPowerAmount<VigorPower>()==5);
                 Check("v03 specialization preserves real stacks",f.Player.Creature.GetPowerAmount<SoldierPower>()==2&&f.Player.Creature.GetPowerAmount<VeteranPower>()==2&&f.Player.Creature.GetPowerAmount<ElitePower>()==2);
                 f.Await(special.AfterSideTurnEnd(f.Context,CombatSide.Player,[f.Player.Creature]));
                 Check("v03 specialization expires after the player side",ArmyPower.Formations(f.Player).Count()==3&&!f.Player.Creature.HasPower<ArmySpecializationPower>());
@@ -144,7 +144,7 @@ public static class V03Verification
                 f.Apply<SoldierPower>(2);f.Apply<VeteranPower>(1);f.Apply<ElitePower>(1);f.Apply<ArmyInterchangePower>(1);
                 f.Player.Creature.GetPower<ArmyInterchangePower>()!.CountSoldiersForThreshold=true;int hp=f.Enemy.CurrentHp;
                 f.Await(f.Player.Creature.GetPower<VeteranPower>()!.Trigger(f.Context));
-                Check("v03 interchange adds elite synergy and counts soldiers only for threshold",hp-f.Enemy.CurrentHp==8&&!f.Enemy.HasPower<VulnerablePower>());
+                Check("v03 interchange retains fixed elite synergy and threshold-only soldiers",hp-f.Enemy.CurrentHp==3&&!f.Enemy.HasPower<VulnerablePower>()&&f.Player.Creature.GetPowerAmount<VigorPower>()==5);
                 f.Await(f.Player.Creature.GetPower<ElitePower>()!.Trigger(f.Context));Check("v03 interchange elite block requires soldiers",f.Player.Creature.Block==1);
             }
             using(var f=new Fixture())

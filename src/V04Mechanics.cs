@@ -63,9 +63,7 @@ public static class V04
         }
         if(d.NoteActive&&(s.AgendaFlags&16)!=0)await RevolutionRewards.Offer(p,RewardCards(p).Where(c=>c.Reading),"理论储备");
         await RevolutionAgenda.Refresh(p,ctx);
-        // Qualifying victory and agenda checks above see the actual end-of-battle crime.
-        int crime=s.Crime;await RemoveCrime(ctx,p,1);
-        if(crime!=s.Crime)GD.Print($"[Artu victory crime] {crime}->{s.Crime}");
+        // Crime persists until an explicit removal effect or the rest-site action.
     }
     public static async Task Evolve<T,F>(Player p)where T:CardModel where F:CardModel
     {await Thoughts.RemoveSame(p,ModelDb.Card<T>());await Util.AddToDeck(p,ModelDb.Card<F>());}

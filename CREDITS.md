@@ -72,6 +72,7 @@ Icons made by **Lorc** and **Delapouite**. Available on https://game-icons.net.
 - 上游原文：https://github.com/game-icons/icons/blob/master/license.txt 。本次于 2026-10-11 查阅网站与上游许可，素材按作者目录逐项选取。
 - 用途：67 个自定义战斗状态及 6 个常驻状态入口（罪证共用对应战斗图标），共 72 个图标资源。不替换原版力量、易伤等通用状态。
 - 修改：去除原黑色背景、调色、增加圆角底板和留白，转换为 128×128 PNG 及 Godot ImageTexture。玩法与存档不变；这是临时素材，不代表最终美术。
+- 创意工坊封面由项目自行编排的SVG文字与这些已登记图标组成，同样保留Lorc、Delapouite及CC BY 3.0署名；不使用《苏丹的游戏》官方美术。
 - 逐项标题、作者、来源及对应状态：源码 `assets/status-icons/来源与对应表.md`；安装目录 `ICON_CREDITS.md`。原始 SVG 保留于 `assets/status-icons/source/`，上游许可原文随安装包以 `LICENSE_ICONS.txt` 提供。
 
 ### Alchyr — BaseLib（《杀戮尖塔 2》Mod 基础库）

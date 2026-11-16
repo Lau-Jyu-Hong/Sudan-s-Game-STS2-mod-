@@ -3,7 +3,8 @@ using System.Text.Json;
 namespace ArtuMod;
 public static class SmokeTests
 {
-    public static void Run(string output)
+    public static void Run(string output)=>Run(output,true);
+    public static void Run(string output,bool quitAfterChecks)
     {
         var checks=new List<string>();var errors=new List<string>();
         void Check(string name,Func<bool> test){try{if(!test())throw new Exception("Assertion failed");checks.Add(name);}catch(Exception e){errors.Add(name+": "+e);}}
@@ -26,8 +27,8 @@ public static class SmokeTests
         Check("Relic state survives reflection copy",()=>{var a=(WitchCardBox)ModelDb.Relic<WitchCardBox>().ToMutable();var b=(WitchTreasureBox)ModelDb.Relic<WitchTreasureBox>().ToMutable();a.Anger=9;a.Mockery=4;foreach(var prop in typeof(WitchCardBox).GetProperties().Where(p=>p.GetCustomAttribute<SavedPropertyAttribute>()!=null&&p.CanWrite))prop.SetValue(b,prop.GetValue(a));return b.Anger==9&&b.Mockery==4;});
         Check("All portrait resources present",()=>ModelDb.All.OfType<ArtuCard>().All(c=>ResourceLoader.Exists(c.PortraitPath)));
         Check("Original portrait textures load",()=>ModelDb.Card<GoldSlaughter>().Portrait?.GetWidth()==250);
-        Check("All custom status icons load at combat and hover size",()=>{foreach(var p in ModelDb.All.OfType<ArtuPower>().Where(p=>p.GetType().IsPublic)){if(!ResourceLoader.Exists(p.CustomPackedIconPath)||p.Icon.GetWidth()!=128||p.BigIcon.GetWidth()!=128)throw new Exception($"{p.GetType().Name}: icon={p.Icon.GetWidth()}, big={p.BigIcon.GetWidth()}, packed={p.PackedIconPath}, resolved={p.ResolvedBigIconPath}");}return true;});
-        Check("Every playable custom power has a distinct icon resource path",()=>{var powers=ModelDb.All.OfType<ArtuPower>().Where(p=>p.GetType().IsPublic).ToArray();return powers.Select(p=>p.CustomPackedIconPath).Distinct().Count()==powers.Length;});
+        Check("All custom status icons load at combat and hover size",()=>{foreach(var p in ModelDb.All.OfType<ArtuPower>().Where(p=>p.GetType().Name.EndsWith("Power",StringComparison.Ordinal))){if(!ResourceLoader.Exists(p.CustomPackedIconPath)||p.Icon.GetWidth()!=128||p.BigIcon.GetWidth()!=128)throw new Exception($"{p.GetType().Name}: icon={p.Icon?.GetWidth()}, big={p.BigIcon?.GetWidth()}, packed={p.PackedIconPath}, resolved={p.ResolvedBigIconPath}");}return true;});
+        Check("Every playable custom power has a distinct icon resource path",()=>{var powers=ModelDb.All.OfType<ArtuPower>().Where(p=>p.GetType().Name.EndsWith("Power",StringComparison.Ordinal)).ToArray();return powers.Select(p=>p.CustomPackedIconPath).Distinct().Count()==powers.Length;});
         Check("Saved card properties round trip",()=>{var a=(SultanCard)ModelDb.Card<GoldSlaughter>().ToMutable();a.BattlesRemaining=1;a.TurnsSinceUse=2;var b=(SultanCard)CardModel.FromSerializable(a.ToSerializable());return b.TurnsSinceUse==2&&b.BattlesRemaining==1;});
         Check("Saved relic properties round trip",()=>{var a=(WitchCardBox)ModelDb.Relic<WitchCardBox>().ToMutable();a.Mockery=9;a.GoldLocked=true;var b=(WitchCardBox)RelicModel.FromSerializable(a.ToSerializable());return b.Mockery==9&&b.GoldLocked;});
         Check("Conquest target lists isolated by instance",()=>!ReferenceEquals(((ConquestChallengePower)ModelDb.Power<ConquestChallengePower>().ToMutable()).Targets,((ConquestChallengePower)ModelDb.Power<ConquestChallengePower>().ToMutable()).Targets));
@@ -44,6 +45,6 @@ public static class SmokeTests
         File.WriteAllText(System.IO.Path.Combine(System.IO.Path.GetDirectoryName(output)!,"registered-pool.json"),JsonSerializer.Serialize(pool,new JsonSerializerOptions{WriteIndented=true}));
         File.WriteAllText(output,JsonSerializer.Serialize(new{passed=checks.Count,failed=errors.Count,checks,errors},new JsonSerializerOptions{WriteIndented=true}));
         GD.Print("ARTU_SMOKE_RESULT "+checks.Count+" passed, "+errors.Count+" failed");
-        ((SceneTree)Engine.GetMainLoop()).Quit(errors.Count==0?0:1);
+        if(quitAfterChecks)((SceneTree)Engine.GetMainLoop()).Quit(errors.Count==0?0:1);
     }
 }

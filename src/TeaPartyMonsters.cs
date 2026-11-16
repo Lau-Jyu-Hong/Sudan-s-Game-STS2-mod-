@@ -135,10 +135,10 @@ public sealed class TeaMercenaryCaptain : TeaMonster
     protected override MonsterMoveStateMachine GenerateMoveStateMachine()
     {
         // The attack icon forecasts the troops' combined damage; separate troop powers resolve it.
-        var soldier=new MoveState("RECRUIT_SOLDIERS",_=>Recruit(1),new BuffIntent(),new SingleAttackIntent(()=>ProjectedDamage(1)));
-        var veteran=new MoveState("RECRUIT_VETERANS",_=>Recruit(2),new BuffIntent(),new SingleAttackIntent(()=>ProjectedDamage(2)));
-        var elite=new MoveState("RECRUIT_ELITES",_=>Recruit(3),new BuffIntent(),new SingleAttackIntent(()=>ProjectedDamage(3)));
-        var expand=new MoveState("EXPAND_ARMY",_=>Expand(),new BuffIntent(),new SingleAttackIntent(()=>ProjectedDamage(0)));
+        var soldier=new MoveState("RECRUIT_SOLDIERS",_=>Recruit(1),new BuffIntent(),new TroopAttackIntent(()=>ProjectedDamage(1)));
+        var veteran=new MoveState("RECRUIT_VETERANS",_=>Recruit(2),new BuffIntent(),new TroopAttackIntent(()=>ProjectedDamage(2)));
+        var elite=new MoveState("RECRUIT_ELITES",_=>Recruit(3),new BuffIntent(),new TroopAttackIntent(()=>ProjectedDamage(3)));
+        var expand=new MoveState("EXPAND_ARMY",_=>Expand(),new BuffIntent(),new TroopAttackIntent(()=>ProjectedDamage(0)));
         soldier.FollowUpState=veteran;veteran.FollowUpState=elite;elite.FollowUpState=expand;expand.FollowUpState=soldier;
         return new MonsterMoveStateMachine([soldier,veteran,elite,expand],soldier);
     }
@@ -147,7 +147,7 @@ public sealed class TeaMercenaryCaptain : TeaMonster
         var soldiers=Creature.GetPowerAmount<EnemySoldierPower>()+(recruitKind==1?RecruitCount:0);
         var veterans=Creature.GetPowerAmount<EnemyVeteranPower>()+(recruitKind==2?RecruitCount:0);
         var elites=Creature.GetPowerAmount<EnemyElitePower>()+(recruitKind==3?RecruitCount:0);
-        return 2*soldiers+2*veterans+4*elites+(veterans>=3?5:0);
+        return 2*soldiers+2*veterans+4*elites;
     }
     public async Task Recruit(int kind)
     {

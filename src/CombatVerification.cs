@@ -42,7 +42,7 @@ public static class CombatVerification
             Apply<CrimePower>(2);hp=enemy.CurrentHp;soldier.Trigger(ctx).GetAwaiter().GetResult();
             Check("Army damage bypasses card-only crime penalty",enemy.CurrentHp==hp-6);
             Apply<VeteranPower>(9);var veterans=p.Creature.GetPower<VeteranPower>()!;hp=enemy.CurrentHp;veterans.Trigger(ctx).GetAwaiter().GetResult();
-            Check("9 veterans get vigor and inflict one weak/vulnerable",enemy.CurrentHp==hp-23&&enemy.GetPowerAmount<WeakPower>()==1&&enemy.GetPowerAmount<VulnerablePower>()==1);
+            Check("9 veterans deal fixed 18 and grant unused vigor plus debuffs",enemy.CurrentHp==hp-18&&p.Creature.GetPowerAmount<VigorPower>()==5&&enemy.GetPowerAmount<WeakPower>()==1&&enemy.GetPowerAmount<VulnerablePower>()==1);
             state.Mockery=5;state.EnforceHp().GetAwaiter().GetResult();Check("Mockery clamps existing life to 50 percent",p.Creature.CurrentHp==35);
             CreatureCmd.Heal(p.Creature,100,false).GetAwaiter().GetResult();Check("Healing cannot exceed the mockery ceiling",p.Creature.CurrentHp==35);
             state.StatsLocked=true;Apply<StrengthPower>(5);Check("Gold conquest expiry denies new strength",p.Creature.GetPowerAmount<StrengthPower>()==0);

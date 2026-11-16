@@ -227,7 +227,7 @@ public class WitchCardBox : CustomRelicModel
         await EnforceHp();
     }
     public override bool TryModifyRestSiteOptions(Player player,ICollection<MegaCrit.Sts2.Core.Entities.RestSite.RestSiteOption> options)
-    {if(player!=Owner)return false;options.Add(new ExchangeSultanOption(player));return true;}
+    {if(player!=Owner)return false;options.Add(new ExchangeSultanOption(player));if(Crime>0)options.Add(new ClearCrimeOption(player));return true;}
 }
 public sealed class WitchTreasureBox:WitchCardBox
 {
@@ -242,6 +242,21 @@ public sealed class TyrantsAccomplice:CustomRelicModel
     protected override string BigIconPath=>PackedIconPath;
     public override RelicRarity Rarity=>RelicRarity.Event;
     public override List<(string,string)> Localization=>new RelicLoc("为虎作伥","苏丹牌0费，使用后抽1张。有苏丹牌在手时，必须先使用苏丹牌，且不能主动结束回合。无法支付的代价由1层苏丹的嘲弄替代。嘲弄每层锁住10%可存活生命；10层永久死亡。","替苏丹挥刀的人，也被握在掌中。");
+}
+public sealed class ClearCrimeOption(Player owner):CustomRestSiteOption(owner)
+{
+    public override string OptionId=>"ARTU_CLEAR_CRIME";
+    public override string CustomIconPath=>"res://ArtuMod/images/status/crimepower.tres";
+    public override bool IsEnabled=>(Util.State(Owner)?.Crime??0)>0;
+    public override async Task<bool> OnSelect()
+    {
+        var state=Util.State(Owner);if(state==null||state.Crime<=0)return false;
+        int before=state.Crime;
+        await V04.RemoveCrime(new ThrowingPlayerChoiceContext(),Owner,1);
+        state.Crime=before-1;
+        GD.Print($"[Artu rest crime] {before}->{state.Crime}");
+        return true; // Native rest UI spends the normal rest-site action.
+    }
 }
 public sealed class ExchangeSultanOption(Player owner):CustomRestSiteOption(owner)
 {

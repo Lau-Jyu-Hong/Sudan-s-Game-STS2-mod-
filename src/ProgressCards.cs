@@ -29,9 +29,9 @@ public sealed class ShareKingsBurden():RewardCard(1,CardType.Power,CardRarity.Un
     protected override Task OnPlay(PlayerChoiceContext ctx,CardPlay play)=>AddPower<KingsBurdenPower>(ctx,DynamicVars["Block"].IntValue);
     protected override void OnUpgrade()=>DynamicVars["Block"].UpgradeValueBy(1);
 }
-public sealed class UnderKingsOrder():RewardCard(1,CardType.Attack,CardRarity.Uncommon,TargetType.AnyEnemy,"王命之下","造成8伤害；本回合每成功支付一次苏丹牌代价，追加{Bonus}伤害。")
+public sealed class UnderKingsOrder():RewardCard(1,CardType.Attack,CardRarity.Uncommon,TargetType.AnyEnemy,"王命之下","造成{Damage:diff()}伤害。基础8；本回合每成功支付一次苏丹牌原代价，追加{Bonus}伤害。")
 {
-    protected override IEnumerable<DynamicVar> CanonicalVars=>[new DynamicVar("Bonus",3)];
+    protected override IEnumerable<DynamicVar> CanonicalVars=>[new PaymentDamageVar(),new DynamicVar("Bonus",3)];
     protected override Task OnPlay(PlayerChoiceContext ctx,CardPlay play)=>Hit(ctx,play,8+PaymentLedger.ThisTurn(Owner)*DynamicVars["Bonus"].IntValue);
     protected override void OnUpgrade()=>DynamicVars["Bonus"].UpgradeValueBy(1);
 }
@@ -100,8 +100,10 @@ public sealed class KingsTreasury():RewardCard(3,CardType.Power,CardRarity.Uncom
     {if(Util.State(Owner) is {} state)state.TreasuryRate+=10;return AddPower<KingsTreasuryPower>(ctx,10);}
     protected override void OnUpgrade()=>EnergyCost.UpgradeBy(-1);
 }
-public sealed class IThink():RewardCard(0,CardType.Skill,CardRarity.Uncommon,TargetType.Self,"俺寻思","弃置任意张其他手牌，抽等量牌"+"（升级后额外抽1）。")
+public sealed class IThink():RewardCard(0,CardType.Skill,CardRarity.Uncommon,TargetType.Self,"俺寻思","弃置任意张其他手牌，抽等量牌。{Extra}")
 {
+    protected override IEnumerable<DynamicVar> CanonicalVars=>[new StringVar("Extra","")];
+    protected override void OnUpgrade()=>((StringVar)DynamicVars["Extra"]).StringValue="额外抽1张牌。";
     protected override async Task OnPlay(PlayerChoiceContext ctx,CardPlay play)
     {var cards=(await CardSelectCmd.FromHandForDiscard(ctx,Owner,new CardSelectorPrefs(SelectionScreenPrompt,0,Owner.PlayerCombatState!.Hand.Cards.Count),c=>c!=this,this)).ToArray();await CardCmd.Discard(ctx,cards);await CardPileCmd.Draw(ctx,cards.Length+(IsUpgraded?1:0),Owner);}
 }
@@ -113,13 +115,17 @@ public sealed class SoldierCharge():RewardCard(1,CardType.Attack,CardRarity.Unco
     {var army=Owner.Creature.GetPower<SoldierPower>();if(army is not {Amount:>0})return;int n=army.Amount;await ArmyPower.Consume(ctx,army,n,play.Card);await Hit(ctx,play,8+n*DynamicVars["Bonus"].IntValue);await CreatureCmd.GainBlock(Owner.Creature,5,ValueProp.Move,play);}
     protected override void OnUpgrade()=>DynamicVars["Bonus"].UpgradeValueBy(1);
 }
-public sealed class ArmyInterchange():RewardCard(2,CardType.Power,CardRarity.Uncommon,TargetType.Self,"互通有无","有士兵时，锐士结算额外获得每层1格挡；有锐士时，精兵每层额外造成1伤害。升级：有精兵时，士兵也计入精兵附加效果阈值。")
+public sealed class ArmyInterchange():RewardCard(2,CardType.Power,CardRarity.Uncommon,TargetType.Self,"互通有无","有士兵时，锐士结算额外获得每层1格挡；有锐士时，精兵每层额外造成1伤害。{Extra}")
 {
+    protected override IEnumerable<DynamicVar> CanonicalVars=>[new StringVar("Extra","")];
+    protected override void OnUpgrade()=>((StringVar)DynamicVars["Extra"]).StringValue="有精兵时，士兵也计入精兵附加效果阈值。";
     protected override async Task OnPlay(PlayerChoiceContext ctx,CardPlay play)
     {var power=await PowerCmd.Apply<ArmyInterchangePower>(ctx,Owner.Creature,1,Owner.Creature,play.Card);if(power!=null&&IsUpgraded)power.CountSoldiersForThreshold=true;}
 }
-public sealed class ArmySpecialization():RewardCard(0,CardType.Skill,CardRarity.Uncommon,TargetType.Self,"特化部队","本回合将所有高级兵种视为指定一种高级兵种，不改变真实层数。升级：另获得1层指定兵种。消耗。")
+public sealed class ArmySpecialization():RewardCard(0,CardType.Skill,CardRarity.Uncommon,TargetType.Self,"特化部队","本回合将所有高级兵种视为指定一种高级兵种，不改变真实层数。{Extra}")
 {
+    protected override IEnumerable<DynamicVar> CanonicalVars=>[new StringVar("Extra","")];
+    protected override void OnUpgrade()=>((StringVar)DynamicVars["Extra"]).StringValue="另获得1层指定兵种。";
     public override IEnumerable<CardKeyword> CanonicalKeywords=>[CardKeyword.Exhaust];
     protected override async Task OnPlay(PlayerChoiceContext ctx,CardPlay play)
     {var choice=await Util.Choose(Owner,[ModelDb.Card<ChooseSoldiers>(),ModelDb.Card<ChooseVeterans>(),ModelDb.Card<ChooseElites>()],false,ctx);int kind=choice is ChooseVeterans?2:choice is ChooseElites?3:1;var power=await PowerCmd.Apply<ArmySpecializationPower>(ctx,Owner.Creature,1,Owner.Creature,play.Card);if(power!=null)power.FormationKind=kind;if(IsUpgraded)await ArmyPower.Gain(ctx,Owner,kind,1,play.Card);}
@@ -182,13 +188,13 @@ public sealed class LastAdvice():RewardCard(2,CardType.Skill,CardRarity.Rare,Tar
     {var candidates=Owner.PlayerCombatState!.DrawPile.Cards.Concat(Owner.PlayerCombatState.DiscardPile.Cards).Where(c=>c is not SultanCard).ToArray();if(candidates.Length==0)return;var cards=await CardSelectCmd.FromSimpleGrid(ctx,candidates,Owner,new CardSelectorPrefs(SelectionScreenPrompt,0,2));foreach(var card in cards){card.SetToFreeThisTurn();await CardPileCmd.Add(card,PileType.Hand);}}
     protected override void OnUpgrade()=>EnergyCost.UpgradeBy(-1);
 }
-public sealed class SuperBecky():RewardCard(3,CardType.Power,CardRarity.Rare,TargetType.Self,"超级贝姬夫人","接管当前回合：按实时手牌奇数位置、再偶数位置两轮强制免费出牌，免除苏丹代价。完成后立即结束回合。")
+public sealed class SuperBecky():RewardCard(3,CardType.Power,CardRarity.Rare,TargetType.Self,"超级贝姬夫人","抽4张牌，然后接管当前回合：按实时手牌奇数位置、再偶数位置两轮强制免费出牌，免除苏丹代价。完成后立即结束回合。")
 {
-    protected override Task OnPlay(PlayerChoiceContext ctx,CardPlay play)=>BeckyController.Run(ctx,Owner);
+    protected override Task OnPlay(PlayerChoiceContext ctx,CardPlay play)=>BeckyController.DrawAndRun(ctx,Owner);
     protected override void OnUpgrade()=>AddKeyword(CardKeyword.Innate);
 }
 public static class CardEconomy
 {
     public static async Task Spend(Player player,int amount)
-    {await PlayerCmd.LoseGold(amount,player);if(Util.State(player) is {} state)state.GoldLost+=amount;}
+    {await PlayerCmd.LoseGold(amount,player);}
 }

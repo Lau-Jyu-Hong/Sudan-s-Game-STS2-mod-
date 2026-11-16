@@ -19,13 +19,14 @@ public static class PaymentLedger
     public static int ThisTurn(Player player)
     {var data=DataByPlayer.GetOrCreateValue(player);return data.Turn==player.PlayerCombatState?.TurnNumber?data.Count:0;}
     public static void Reset(Player player)=>DataByPlayer.Remove(player);
-    public static async Task Record(PlayerChoiceContext ctx,Player player)
+    public static async Task Record(PlayerChoiceContext ctx,Player player,bool originalCost=true)
     {
         var data=DataByPlayer.GetOrCreateValue(player);int turn=player.PlayerCombatState?.TurnNumber??0;
-        if(data.Turn!=turn){data.Turn=turn;data.Count=0;}data.Count++;
+        if(data.Turn!=turn){data.Turn=turn;data.Count=0;}if(originalCost)data.Count++;
         if(Util.State(player) is {} state)state.CostsPaid++;
         if(player.Creature.GetPower<KingsBurdenPower>() is {} burden)
             await CreatureCmd.GainBlock(player.Creature,burden.Amount,ValueProp.Unpowered,null);
+        player.PlayerCombatState?.RecalculateCardValues();
     }
 }
 public sealed class KingsBurdenPower():ArtuPower("为君分忧","每成功支付一次苏丹牌代价获得{Amount}格挡。");

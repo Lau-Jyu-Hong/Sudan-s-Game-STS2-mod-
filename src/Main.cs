@@ -30,7 +30,7 @@ public sealed class ArtuCardPool : CustomCardPoolModel
 {
     public override string Title => "Artu";
     public override string BigEnergyIconPath => ModelDb.CardPool<MegaCrit.Sts2.Core.Models.CardPools.IroncladCardPool>().EnergyIconPath;
-    public override string TextEnergyIconPath => ModelDb.CardPool<MegaCrit.Sts2.Core.Models.CardPools.IroncladCardPool>().EnergyIconPath;
+    public override string TextEnergyIconPath => "res://images/packed/sprite_fonts/ironclad_energy_icon.png";
     public override float H => 0.12f; public override float S => 0.55f; public override float V => 0.9f;
     public override Color DeckEntryCardColor => new("d6ae63");
     public override bool IsColorless => false;
@@ -39,6 +39,8 @@ public sealed class ArtuRelicPool : CustomRelicPoolModel { }
 [Pool(typeof(ArtuCardPool))]
 public abstract class ArtuCard(int cost, CardType type, CardRarity rarity, TargetType target) : CustomCardModel(cost,type,rarity,target)
 {
+    protected override IEnumerable<MegaCrit.Sts2.Core.HoverTips.IHoverTip> ExtraHoverTips
+        =>ArtuTerms.Tips(string.Join("\n",(Localization??[]).Select(x=>x.Item2)),ArtuTerms.OwnerOf(this));
     public virtual bool Reading => false;
     public virtual bool Thought => false;
     public override int MaxUpgradeLevel => Reading || Thought ? 0 : 1;

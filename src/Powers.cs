@@ -3,7 +3,8 @@ public abstract class ArtuPower(string name,string description,PowerType type=Po
 {
     public override PowerType Type=>type;
     public override PowerStackType StackType=>PowerStackType.Counter;
-    public override List<(string,string)> Localization=>new PowerLoc(name,description,description);
+    public override List<(string,string)> Localization=>new PowerLoc(name,ArtuTerms.Highlight(description),ArtuTerms.Highlight(description));
+    protected override IEnumerable<MegaCrit.Sts2.Core.HoverTips.IHoverTip> ExtraHoverTips=>ArtuTerms.Tips(description,ArtuTerms.OwnerOf(this));
     public override string CustomPackedIconPath=>ModelDb.Power<StrengthPower>().PackedIconPath;
     public override string CustomBigIconPath=>ModelDb.Power<StrengthPower>().ResolvedBigIconPath;
 }
@@ -168,7 +169,7 @@ public sealed class WarSongPower():ArtuPower("强军战歌","每回合开始时�
 {
     public override Task AfterPlayerTurnStart(PlayerChoiceContext ctx,Player p)=>p==Owner.Player?ArmyPower.Gain(ctx,p,2,Amount):Task.CompletedTask;
 }
-public sealed class CrimePower():ArtuPower("罪证","1：卡牌伤害−1；2：卡牌格挡−1；3：开局抽牌−1；4：自然能量−1；5：首张非苏丹牌+1费；6：首张非苏丹牌后1晕眩；7：第4张及以后非苏丹牌额外随机弃1；8：每张非苏丹牌后1晕眩（替代第6级）。",PowerType.Debuff)
+public sealed class CrimePower():ArtuPower("罪证","跨战斗保存；胜利后自然移除1层，最低0。各档惩罚累计：\n1：卡牌伤害−1。\n2：卡牌格挡−1。\n3：每回合开始少抽1张牌。\n4：自然能量−1。\n5：每回合首张非苏丹牌+1费。\n6：每回合首张非苏丹牌后加入1张晕眩。\n7：第4张及以后非苏丹牌额外随机弃1张。\n8：每张非苏丹牌后加入1张晕眩（替代第6档）。",PowerType.Debuff)
 {
     public override decimal ModifyDamageAdditive(Creature? target,decimal amount,ValueProp props,Creature? dealer,CardModel? card,CardPlay? play)=>dealer==Owner&&card!=null&&!props.HasFlag(ValueProp.Unpowered)&&Amount>=1?-1:0;
     public override decimal ModifyBlockAdditive(Creature target,decimal amount,ValueProp props,CardModel? card,CardPlay? play)=>target==Owner&&card!=null&&Amount>=2?-1:0;

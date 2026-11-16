@@ -6,6 +6,7 @@ public static class RegisterArtuUi
     [HarmonyPostfix,HarmonyPriority(Priority.Last)]
     static void Postfix()
     {
+        ArtuTerms.Register();
         var dict=(Dictionary<string,string>)AccessTools.Field(typeof(LocTable),"_translations").GetValue(LocManager.Instance.GetTable("rest_site_ui"))!;
         dict["OPTION_ARTU_EXCHANGE.name"]="换牌";
         dict["OPTION_ARTU_EXCHANGE.description"]="选择一张非黄金苏丹牌，换为随机的高一级苏丹牌；继承剩余期限。";

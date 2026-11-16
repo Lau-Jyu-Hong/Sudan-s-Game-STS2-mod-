@@ -35,6 +35,7 @@ public static class SmokeTests
         Check("v03 specification gameplay integration",()=>{checks.AddRange(V03Verification.Run());return true;});
         Check("v04 full incremental gameplay integration",()=>{checks.AddRange(V04Verification.Run());return true;});
         Check("Defense supplement gameplay integration",()=>{checks.AddRange(DefenseSupplementVerification.Run());return true;});
+        Check("Repair verification",()=>{checks.AddRange(RepairVerification.Run());return true;});
         Directory.CreateDirectory(System.IO.Path.GetDirectoryName(output)!);
         var pool=ModelDb.Character<Artu>().CardPool.GetUnlockedCards(MegaCrit.Sts2.Core.Unlocks.UnlockState.all,CardMultiplayerConstraint.SingleplayerOnly).OfType<ArtuCard>().Where(c=>c.Rarity is CardRarity.Common or CardRarity.Uncommon or CardRarity.Rare).OrderBy(c=>c.Rarity).ThenBy(c=>c.Id.ToString()).Select(c=>new{id=c.Id.ToString(),name=c.Title,rarity=c.Rarity.ToString(),type=c.Type.ToString(),energy=c.EnergyCost.Canonical,upgradable=c.MaxUpgradeLevel>0,c.Reading,c.Thought,c.CanBeGeneratedInCombat,c.CanBeGeneratedByModifiers,description=c.Description.GetFormattedText()});
         File.WriteAllText(System.IO.Path.Combine(System.IO.Path.GetDirectoryName(output)!,"registered-pool.json"),JsonSerializer.Serialize(pool,new JsonSerializerOptions{WriteIndented=true}));

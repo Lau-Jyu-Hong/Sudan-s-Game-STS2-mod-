@@ -2,6 +2,7 @@ namespace ArtuMod;
 [Pool(typeof(ArtuRelicPool))]
 public class WitchCardBox : CustomRelicModel
 {
+    protected override IEnumerable<MegaCrit.Sts2.Core.HoverTips.IHoverTip> ExtraHoverTips=>ArtuTerms.Tips("苏丹之怒 苏丹的嘲弄 虔信 狂信 谋逆",ArtuTerms.OwnerOf(this));
     public override RelicRarity Rarity=>RelicRarity.Starter;
     public override string PackedIconPath=>"res://ArtuMod/images/witchcardbox.tres";
     protected override string BigIconPath=>PackedIconPath;
@@ -179,6 +180,8 @@ public class WitchCardBox : CustomRelicModel
     public override async Task AfterCombatVictory(CombatRoom room)
     {
         if(Owner.Creature.IsDead)return;
+        if(V04.Data(Owner).SettlementProcessed)return;
+        V04.Data(Owner).SettlementProcessed=true;
         var ctx=new ThrowingPlayerChoiceContext();
         await TickGold(ctx);
         foreach(var card in Owner.Deck.Cards.OfType<SultanCard>().ToArray())
@@ -188,7 +191,7 @@ public class WitchCardBox : CustomRelicModel
             else if(!card.FailedThisBattle&&--card.BattlesRemaining<=0)await Expire(ctx,card);
             if(Owner.Creature.IsDead)return;
         }
-        if(GoldLost>20&&Refund>0)await PlayerCmd.GainGold(Refund,Owner);
+        if(GoldLost>20&&Refund>0){int before=Owner.Gold;await PlayerCmd.GainGold(Refund,Owner);GD.Print($"[Artu refund] spent={GoldLost} refund={Refund} balance={before}->{Owner.Gold}");}
         if(TreasuryRate>0)await PlayerCmd.GainGold(TreasuryRate*SultanUsage.UsedKinds(Owner).Count,Owner);
         await V04.Victory(Owner,ctx);
         await Thoughts.Resolve(Owner,this,ctx);

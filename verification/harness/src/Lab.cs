@@ -41,6 +41,12 @@ public static class Lab
         Directory.CreateDirectory(reportDirectory);
         await Task.Delay(1000);
         if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ARTU_V04_SCENARIO"))) {
+            if(Environment.GetEnvironmentVariable("ARTU_V04_SCENARIO")=="repair"){
+                _ = MegaCrit.Sts2.Core.Helpers.TaskHelper.RunSafely(RepairScenario.Run(reportDirectory));return;
+            }
+            if(Environment.GetEnvironmentVariable("ARTU_V04_SCENARIO")=="repair-reload"){
+                _ = MegaCrit.Sts2.Core.Helpers.TaskHelper.RunSafely(RepairScenario.Reload(reportDirectory));return;
+            }
             _ = MegaCrit.Sts2.Core.Helpers.TaskHelper.RunSafely(V04Scenario.Run(reportDirectory,Environment.GetEnvironmentVariable("ARTU_V04_SCENARIO")!));
             return;
         }

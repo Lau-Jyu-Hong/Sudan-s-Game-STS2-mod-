@@ -9,7 +9,7 @@ public static class V04
     {
         public HashSet<ModelId> Thoughts=[];public HashSet<SultanSuit> Suits=[];
         public HashSet<Type> ThirdUsed=[];public HashSet<SultanCard> GraceUsed=[];
-        public bool Grace,GracePenalty,NoteActive,RegicideUsed,ConceptUsed,NoteShown;
+        public bool Grace,GracePenalty,NoteActive,RegicideUsed,ConceptUsed,NoteShown,VictoryProcessed,SettlementProcessed;
         public int AngerAtStart,RebellionTriggers,NoteClaimed;public int BeckyEndQueuedTurn=-1;
     }
     static readonly ConditionalWeakTable<Player,Battle> Battles=new();
@@ -37,6 +37,7 @@ public static class V04
     public static async Task Victory(Player p,PlayerChoiceContext ctx)
     {
         var s=Util.State(p);if(s==null||p.Creature.IsDead)return;var d=Data(p);
+        if(d.VictoryProcessed)return;d.VictoryProcessed=true;
         if(d.Grace&&d.GracePenalty)
         foreach(var card in d.GraceUsed.Where(c=>p.Deck.Cards.Contains(c)).ToArray())
         {
@@ -48,11 +49,11 @@ public static class V04
             if(p.Creature.IsDead)return;
         }
         if(d.ThirdUsed.Contains(typeof(AtonementPrayer))&&s.Crime==0&&s.Anger==d.AngerAtStart)
-        {s.Devotion++;if(s.Devotion==3)await Evolve<AtonementPrayer,PerfectWorld>(p);}
+        {s.Devotion++;GD.Print($"[Artu evolution] 虔信 {s.Devotion}/3");if(s.Devotion==3)await Evolve<AtonementPrayer,PerfectWorld>(p);}
         if(d.ThirdUsed.Contains(typeof(AncientFaith))&&d.Suits.Count>=2)
-        {s.Fanaticism++;if(s.Fanaticism==3)await Evolve<AncientFaith,NewWorld>(p);}
+        {s.Fanaticism++;GD.Print($"[Artu evolution] 狂信 {s.Fanaticism}/3");if(s.Fanaticism==3)await Evolve<AncientFaith,NewWorld>(p);}
         if(d.ThirdUsed.Contains(typeof(RebellionIntent))&&d.RebellionTriggers>=2)
-        {s.Treason++;if(s.Treason==3)await Evolve<RebellionIntent,RegicidePlan>(p);}
+        {s.Treason++;GD.Print($"[Artu evolution] 谋逆 {s.Treason}/3");if(s.Treason==3)await Evolve<RebellionIntent,RegicidePlan>(p);}
         int removals=(d.NoteActive&&(s.AgendaFlags&1)!=0?1:0)+(d.RegicideUsed&&SultanUsage.UsedKinds(p).Count==0?1:0);
         for(int i=0;i<removals&&p.Deck.Cards.Any(c=>c is SultanCard);i++)
         {
@@ -61,6 +62,9 @@ public static class V04
         }
         if(d.NoteActive&&(s.AgendaFlags&16)!=0)await RevolutionRewards.Offer(p,RewardCards(p).Where(c=>c.Reading),"理论储备");
         await RevolutionAgenda.Refresh(p,ctx);
+        // Qualifying victory and agenda checks above see the actual end-of-battle crime.
+        int crime=s.Crime;await RemoveCrime(ctx,p,1);
+        if(crime!=s.Crime)GD.Print($"[Artu victory crime] {crime}->{s.Crime}");
     }
     public static async Task Evolve<T,F>(Player p)where T:CardModel where F:CardModel
     {await Thoughts.RemoveSame(p,ModelDb.Card<T>());await Util.AddToDeck(p,ModelDb.Card<F>());}

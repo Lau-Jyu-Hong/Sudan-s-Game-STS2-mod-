@@ -74,7 +74,7 @@ public abstract class SultanCard(SultanSuit suit,SultanGrade grade) : ArtuCard(1
         bool waived=V04Replay.Free(this,play);
         if(waived)paid=true;
         else if(pass!=null){await PowerCmd.Decrement(pass);paid=true;}
-        else if(replacement){await PowerCmd.Apply<CrimePower>(ctx,Owner.Creature,1,Owner.Creature,play.Card);await PaymentLedger.Record(ctx,Owner);paid=true;}
+        else if(replacement){await PowerCmd.Apply<CrimePower>(ctx,Owner.Creature,1,Owner.Creature,play.Card);await PaymentLedger.Record(ctx,Owner,false);paid=true;}
         else
         {
             bool doubleCost=actualUse&&Owner.Creature.HasPower<DoubleCostPower>();
@@ -82,7 +82,7 @@ public abstract class SultanCard(SultanSuit suit,SultanGrade grade) : ArtuCard(1
             for(int i=0;i<count;i++)
             {
                 if(Owner.Creature.GetPower<LifeScepterPower>() is {} scepter&&await scepter.TryReplace(ctx))
-                {paid=true;await PaymentLedger.Record(ctx,Owner);continue;}
+                {paid=true;await PaymentLedger.Record(ctx,Owner,false);continue;}
                 // A second zero-block iteration under DoubleCost is deliberately allowed.
                 if(i>0&&Suit==SultanSuit.Conquest&&Grade==SultanGrade.Stone&&Owner.Creature.Block==0)break;
                 if(!CanPayTarget(target))
@@ -109,7 +109,7 @@ public abstract class SultanCard(SultanSuit suit,SultanGrade grade) : ArtuCard(1
                             sacrificed??=payment;
                             await CardCmd.Exhaust(ctx,payment);
                         }
-                        else {int cost=Rules.LuxuryGoldCost(Grade);await PlayerCmd.LoseGold(cost,Owner);if(state!=null)state.GoldLost+=cost;}
+                        else {int cost=Rules.LuxuryGoldCost(Grade);await PlayerCmd.LoseGold(cost,Owner);}
                         break;
                     case SultanSuit.Lust:
                         var enemies=Grade==SultanGrade.Gold?Util.Enemies(Owner).ToArray():target==null?[]:new[]{target};

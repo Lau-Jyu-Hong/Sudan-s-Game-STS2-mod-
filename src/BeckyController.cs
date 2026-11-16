@@ -14,8 +14,15 @@ public static class BeckyController
     sealed record Session(Player Player,Rng Choices);
     static readonly AsyncLocal<Session?> Current=new();
     static readonly HashSet<Player> Running=[];
+    static readonly HashSet<Player> Preparing=[];
     public static bool Active(Player player)=>Current.Value?.Player==player&&Running.Contains(player);
     public static bool TakeoverRunning(Player player)=>Running.Contains(player);
+    public static async Task DrawAndRun(PlayerChoiceContext ctx,Player player)
+    {
+        if(Running.Contains(player)||!Preparing.Add(player))return;
+        try{await CardPileCmd.Draw(ctx,4,player);if(!player.Creature.IsDead&&!CombatManager.Instance.IsOverOrEnding)await Run(ctx,player);}
+        finally{Preparing.Remove(player);}
+    }
     public static async Task Run(PlayerChoiceContext ctx,Player player)
     {
         if(Active(player)){GD.Print("[Artu Becky] Nested takeover ignored; the current two scans continue.");return;}
@@ -26,12 +33,15 @@ public static class BeckyController
         {
             await Scan(()=>player.PlayerCombatState?.Hand.Cards.Count??0,async index=>{
                 if(player.Creature.IsDead||CombatManager.Instance.IsOverOrEnding)return;
+                await BeckyPresentation.BeforeCard(player);
+                if(player.Creature.IsDead||CombatManager.Instance.IsOverOrEnding||index>=player.PlayerCombatState!.Hand.Cards.Count)return;
                 var card=player.PlayerCombatState!.Hand.Cards[index];
                 GD.Print($"[Artu Becky] position={index+1} card={card.Id} hand=[{string.Join(",",player.PlayerCombatState.Hand.Cards.Select(c=>c.Id))}]");
                 await ForcePlay(ctx,card);
             },()=>!player.Creature.IsDead&&!CombatManager.Instance.IsOverOrEnding);
+            await BeckyPresentation.AfterScans(player);
         }
-        finally{Current.Value=previous;Running.Remove(player);}
+        finally{BeckyPresentation.Clear(player);Current.Value=previous;Running.Remove(player);}
         if(!player.Creature.IsDead&&CombatManager.Instance.IsInProgress&&V04.Data(player).BeckyEndQueuedTurn!=player.PlayerCombatState!.TurnNumber)
         {V04.Data(player).BeckyEndQueuedTurn=player.PlayerCombatState.TurnNumber;PlayerCmd.EndTurn(player,canBackOut:false);}
     }

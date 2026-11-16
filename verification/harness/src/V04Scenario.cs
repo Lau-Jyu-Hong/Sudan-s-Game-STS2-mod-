@@ -124,5 +124,5 @@ static class V04ObserveCardRewards {static void Postfix(NCardRewardSelectionScre
 static class V04ObserveActualPlays
 {
     static void Postfix(CardPlay cardPlay,ref Task __result)=>__result=After(__result,cardPlay);
-    static async Task After(Task original,CardPlay play){await original;V04Scenario.Observe(play);}
+    static async Task After(Task original,CardPlay play){await original;V04Scenario.Observe(play);RepairScenario.Observe(play);}
 }

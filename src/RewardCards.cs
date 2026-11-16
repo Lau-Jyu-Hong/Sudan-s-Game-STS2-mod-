@@ -3,7 +3,7 @@ public abstract class RewardCard(int cost,CardType type,CardRarity rarity,Target
 {
     protected string TitleText {get;}=title;
     protected string DescriptionText {get;}=text;
-    public override List<(string,string)> Localization=>new CardLoc(TitleText,DescriptionText);
+    public override List<(string,string)> Localization=>new CardLoc(TitleText,ArtuTerms.Highlight(CanonicalKeywords.Contains(CardKeyword.Exhaust)?System.Text.RegularExpressions.Regex.Replace(DescriptionText,@"消耗。[\s]*$",""):DescriptionText));
     protected Task Hit(PlayerChoiceContext ctx,CardPlay play,int damage)=>play.Target==null?Task.CompletedTask:DamageCmd.Attack(damage).FromCard(play.Card,play).Targeting(play.Target).Execute(ctx);
     protected override void OnUpgrade(){}
 }
@@ -52,7 +52,7 @@ public sealed class CoinSlingshot():RewardCard(1,CardType.Attack,CardRarity.Comm
 {
     protected override bool IsPlayable=>Owner.Gold>=5;
     protected override IEnumerable<DynamicVar> CanonicalVars=>[new DamageVar(14,ValueProp.Move)];
-    protected override async Task OnPlay(PlayerChoiceContext ctx,CardPlay play){if(Owner.Gold<5)return;await PlayerCmd.LoseGold(5,Owner);if(Util.State(Owner) is {} s)s.GoldLost+=5;await Hit(ctx,play,DynamicVars.Damage.IntValue);}
+    protected override async Task OnPlay(PlayerChoiceContext ctx,CardPlay play){if(Owner.Gold<5)return;await PlayerCmd.LoseGold(5,Owner);await Hit(ctx,play,DynamicVars.Damage.IntValue);}
     protected override void OnUpgrade()=>DynamicVars.Damage.UpgradeValueBy(4);
 }
 public sealed class Chivalry():RewardCard(1,CardType.Attack,CardRarity.Uncommon,TargetType.AnyEnemy,"行侠仗义","造成{Damage}伤害。每造成6点实际生命损失，随机获得1层高级兵种。")
@@ -70,9 +70,9 @@ public sealed class Ironhead():RewardCard(2,CardType.Attack,CardRarity.Common,Ta
 }
 public sealed class Quickfoot():RewardCard(0,CardType.Attack,CardRarity.Common,TargetType.AnyEnemy,"快脚小圆","造成{Damage}伤害，获得{Block}格挡。")
 {
-    protected override IEnumerable<DynamicVar> CanonicalVars=>[new DamageVar(2,ValueProp.Move),new BlockVar(2,ValueProp.Move)];
+    protected override IEnumerable<DynamicVar> CanonicalVars=>[new DamageVar(3,ValueProp.Move),new BlockVar(3,ValueProp.Move)];
     protected override async Task OnPlay(PlayerChoiceContext ctx,CardPlay play){await Hit(ctx,play,DynamicVars.Damage.IntValue);await CreatureCmd.GainBlock(Owner.Creature,DynamicVars.Block,play);}
-    protected override void OnUpgrade(){DynamicVars.Damage.UpgradeValueBy(1);DynamicVars.Block.UpgradeValueBy(1);}
+    protected override void OnUpgrade(){DynamicVars.Damage.UpgradeValueBy(2);DynamicVars.Block.UpgradeValueBy(2);}
 }
 public sealed class LoyalHound():RewardCard(1,CardType.Skill,CardRarity.Common,TargetType.Self,"忠犬护主","获得1层虚弱，获得{Block}格挡。")
 {
@@ -86,8 +86,10 @@ public sealed class WifesTea():RewardCard(1,CardType.Skill,CardRarity.Common,Tar
     protected override Task OnPlay(PlayerChoiceContext ctx,CardPlay play)=>AddPower<TeaPower>(ctx,DynamicVars["Block"].IntValue);
     protected override void OnUpgrade()=>DynamicVars["Block"].UpgradeValueBy(1);
 }
-public sealed class StateAffairs():RewardCard(1,CardType.Skill,CardRarity.Common,TargetType.Self,"处理政要","选择：抽2张；或抽4张、弃3张。升级后可再支付1能量选择两项。")
+public sealed class StateAffairs():RewardCard(1,CardType.Skill,CardRarity.Common,TargetType.Self,"处理政要","选择：抽2张；或抽4张、弃3张。{Extra}")
 {
+    protected override IEnumerable<DynamicVar> CanonicalVars=>[new StringVar("Extra","")];
+    protected override void OnUpgrade()=>((StringVar)DynamicVars["Extra"]).StringValue="可再支付1能量选择两项。";
     protected override async Task OnPlay(PlayerChoiceContext ctx,CardPlay play)
     {
         var choice=await Util.Choose(Owner,[ModelDb.Card<DrawTwoOption>(),ModelDb.Card<DrawDiscardOption>()],false,ctx);
@@ -115,8 +117,10 @@ public sealed class AllArmyAttack():RewardCard(1,CardType.Power,CardRarity.Uncom
 {
     protected override async Task OnPlay(PlayerChoiceContext ctx,CardPlay play){await AddPower<AllArmyPower>(ctx,1);if(IsUpgraded)await ArmyPower.Gain(ctx,Owner,0,2,this);}
 }
-public sealed class ImperialExpedition():RewardCard(1,CardType.Skill,CardRarity.Common,TargetType.Self,"奉诏出征","消耗1张手牌中的征服苏丹牌，按品级获得1/2/3/4层士兵（升级：各+1）。消耗。")
+public sealed class ImperialExpedition():RewardCard(1,CardType.Skill,CardRarity.Common,TargetType.Self,"奉诏出征","消耗1张手牌中的征服苏丹牌，按品级获得{Grades}层士兵。")
 {
+    protected override IEnumerable<DynamicVar> CanonicalVars=>[new StringVar("Grades","1/2/3/4")];
+    protected override void OnUpgrade()=>((StringVar)DynamicVars["Grades"]).StringValue="2/3/4/5";
     public override IEnumerable<CardKeyword> CanonicalKeywords=>[CardKeyword.Exhaust];
     protected override async Task OnPlay(PlayerChoiceContext ctx,CardPlay play)
     {if(await Select(ctx,Owner.PlayerCombatState!.Hand.Cards.Where(c=>c is SultanCard s&&s.Suit==SultanSuit.Conquest)) is not SultanCard chosen)return;await CardCmd.Exhaust(ctx,chosen);await ArmyPower.Gain(ctx,Owner,1,(int)chosen.Grade+1+(IsUpgraded?1:0),this);}
@@ -149,8 +153,10 @@ public sealed class WarSong():RewardCard(1,CardType.Power,CardRarity.Rare,Target
     protected override Task OnPlay(PlayerChoiceContext ctx,CardPlay play)=>AddPower<WarSongPower>(ctx,1);
     protected override void OnUpgrade()=>AddKeyword(CardKeyword.Innate);
 }
-public sealed class Muster():RewardCard(2,CardType.Attack,CardRarity.Common,TargetType.Self,"整兵待战","触发所有至少4层兵种的回合结束效果。升级：其他已有兵种各+1层。立即结束回合。消耗。")
+public sealed class Muster():RewardCard(2,CardType.Attack,CardRarity.Common,TargetType.Self,"整兵待战","触发所有至少4层兵种的回合结束效果。{Extra}立即结束回合。")
 {
+    protected override IEnumerable<DynamicVar> CanonicalVars=>[new StringVar("Extra","")];
+    protected override void OnUpgrade()=>((StringVar)DynamicVars["Extra"]).StringValue="其他已有兵种各+1层。";
     public override IEnumerable<CardKeyword> CanonicalKeywords=>[CardKeyword.Exhaust];
     protected override async Task OnPlay(PlayerChoiceContext ctx,CardPlay play)
     {var armies=ArmyPower.Formations(Owner).ToArray();foreach(var army in armies.Where(a=>a.amount>=4))await army.source.Trigger(ctx);
@@ -165,7 +171,7 @@ public sealed class ObeyOrders():RewardCard(2,CardType.Power,CardRarity.Common,T
 public sealed class ReturnOnSpending():RewardCard(1,CardType.Power,CardRarity.Common,TargetType.Self,"有去有回","本场失去超过20金币，战斗结束后获得{Gold}金币。")
 {
     protected override IEnumerable<DynamicVar> CanonicalVars=>[new GoldVar(20)];
-    protected override Task OnPlay(PlayerChoiceContext ctx,CardPlay play){if(Util.State(Owner) is {} state)state.Refund+=DynamicVars.Gold.IntValue;return Task.CompletedTask;}
+    protected override async Task OnPlay(PlayerChoiceContext ctx,CardPlay play){if(Util.State(Owner) is {} state){state.Refund+=DynamicVars.Gold.IntValue;await AddPower<SpendingRefundPower>(ctx,DynamicVars.Gold.IntValue);Owner.Creature.GetPower<SpendingRefundPower>()?.Refresh();}}
     protected override void OnUpgrade()=>DynamicVars.Gold.UpgradeValueBy(10);
 }
 public sealed class MoonDogBook():RewardCard(1,CardType.Skill,CardRarity.Common,TargetType.Self,"小狗与月亮之书","[gold]读物[/gold]\n获得3多重护甲。")

@@ -6,6 +6,8 @@
     <NoWarn>$(NoWarn);MSB3270</NoWarn>
   </PropertyGroup>
   <ItemGroup>
+    <EmbeddedResource Include="../assets/becky/*.mp3" LogicalName="ArtuMod.Becky.%(Filename)%(Extension)"/>
+    <EmbeddedResource Include="../assets/becky/*.png" LogicalName="ArtuMod.Becky.%(Filename)%(Extension)"/>
     <Reference Include="sts2" HintPath="$(GameData)\sts2.dll" Private="false"/>
     <Reference Include="GodotSharp" HintPath="$(GameData)\GodotSharp.dll" Private="false"/>
     <Reference Include="0Harmony" HintPath="$(GameData)\0Harmony.dll" Private="false"/>

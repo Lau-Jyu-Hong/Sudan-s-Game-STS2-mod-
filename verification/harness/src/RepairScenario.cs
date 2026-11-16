@@ -94,11 +94,32 @@ public static class RepairScenario
             await Battle();foreach(var power in p.Creature.Powers.ToArray())await PowerCmd.Remove(power);
             var cat=await Add(typeof(SuperBecky));var letters=new Dictionary<CardModel,char>();foreach(char c in "ABCD")letters[await Add(typeof(LoyalHound))]=c;
             foreach(char c in "EFGH")letters[await Add(typeof(LoyalHound),PileType.Draw)]=c;
-            turn=p.PlayerCombatState!.TurnNumber;int before=Plays.Count;Check("Becky manual accepted",cat.TryManualPlay(null));
+            turn=p.PlayerCombatState!.TurnNumber;int before=Plays.Count;
+            var fxWatch=WatchBecky(dir,p,()=>p.PlayerCombatState!.TurnNumber>turn);
+            Check("Becky manual accepted",cat.TryManualPlay(null));
             await Until(()=>p.PlayerCombatState!.TurnNumber>turn&&p.PlayerCombatState.Phase==PlayerTurnPhase.Play,"Becky scans and one end turn");
+            var fx=await fxWatch;Save("becky-presentation.json",new{fx.shortPlaying,fx.longPlaying,fx.frames,fx.sfxBus});
+            Check("Becky short and long audio streams play",fx.shortPlaying&&fx.longPlaying);
+            Check("Becky frame sequence advances",fx.frames>1);
+            Check("Becky sound uses native SFX bus",fx.sfxBus);
+            Check("Becky overlay removed before next turn",!NRun.Instance!.HasNode("ArtuBeckyPresentation"));
             string order=string.Concat(Plays.Skip(before).Where(x=>letters.ContainsKey(x.Card)).Select(x=>letters[x.Card]));
             Save("becky-native.json",new{order,played=Plays.Skip(before).Select(x=>x.Card.Id.ToString())});
             Check("Becky draws four before live eight-card ADGCH scan",order=="ADGCH");await Finish();
+
+            await Battle();
+            foreach(var e in combat.HittableEnemies.Skip(1).ToArray())await CreatureCmd.Kill(e);
+            var earlyCat=await Add(typeof(SuperBecky));var earlyKill=await Add(typeof(DestructiveStrike));earlyKill.DynamicVars.Damage.BaseValue=999999;
+            await Add(typeof(LoyalHound));foreach(int i in Enumerable.Range(0,4))await Add(typeof(LoyalHound),PileType.Draw);
+            var interruptedFx=BeckyPresentation.BeforeCard(p,earlyKill);await Task.Delay(250);BeckyPresentation.Clear(p);
+            Check("Becky mid-wait cancellation returns safely",await Task.WhenAny(interruptedFx,Task.Delay(2000))==interruptedFx);
+            Check("Becky mid-wait cancellation leaves no overlay",!NRun.Instance!.HasNode("ArtuBeckyPresentation"));
+            before=Plays.Count;turn=p.PlayerCombatState!.TurnNumber;
+            Check("Becky lethal native manual accepted",earlyCat.TryManualPlay(null));
+            await Until(()=>!CombatManager.Instance.IsInProgress,"Becky lethal stops combat");await Task.Delay(500);
+            Check("Becky lethal only plays the killing card",Plays.Skip(before).Count(x=>x.Card!=earlyCat)==1);
+            Check("Becky lethal overlay cleaned",!NRun.Instance!.HasNode("ArtuBeckyPresentation"));
+            Save("becky-lethal.json",new{extraAutoCards=Plays.Skip(before).Count(x=>x.Card!=earlyCat),overlayRemaining=NRun.Instance.HasNode("ArtuBeckyPresentation"),combatEnded=!CombatManager.Instance.IsInProgress});
 
             for(int path=0;path<3;path++)
             {
@@ -118,7 +139,7 @@ public static class RepairScenario
             }
             await Shot("all-evolution-progress");Save("saved-progress.json",state.ToSerializable());
             await NGame.Instance.ReturnToMainMenuAfterRun();Check("returns to main menu",NRun.Instance==null);
-            Save("result.json",new{passed=checks.Count,failed=0,checks,actualVictories=11,profile=OS.GetUserDataDir(),manualCardActions=true,artificialResources=true,reloadNotTested=true});
+            Save("result.json",new{passed=checks.Count,failed=0,checks,actualVictories=12,profile=OS.GetUserDataDir(),manualCardActions=true,artificialResources=true,reloadNotTested=true});
             NGame.Instance.GetTree().Quit(0);
         }
         catch(Exception e){Save("result.json",new{passed=checks.Count,failed=1,checks,error=e.ToString()});GD.PrintErr(e.ToString());NGame.Instance?.GetTree().Quit(1);}
@@ -128,6 +149,29 @@ public static class RepairScenario
     {
         public Task<IEnumerable<CardModel>> GetSelectedCards(IEnumerable<CardModel> cards,int min,int max)=>Task.FromResult(cards.Take(min));
         public CardRewardSelection GetSelectedCardReward(IReadOnlyList<CardCreationResult> cards,IReadOnlyList<CardRewardAlternative> alternatives)=>default;
+    }
+    static async Task<(bool shortPlaying,bool longPlaying,int frames,bool sfxBus)> WatchBecky(string dir,Player player,Func<bool> done)
+    {
+        bool shortPlaying=false,longPlaying=false,sfxBus=false;var frames=new HashSet<ulong>();bool shortShot=false,longShot=false;
+        var deadline=DateTime.UtcNow.AddSeconds(35);
+        while(!done()&&DateTime.UtcNow<deadline)
+        {
+            await Task.Delay(80);
+            var layer=NRun.Instance?.GetNodeOrNull<CanvasLayer>("ArtuBeckyPresentation");
+            if(layer==null)continue;
+            var sprite=layer.GetNode<TextureRect>("Cat");var voice=layer.GetNode<AudioStreamPlayer>("Voice");
+            sfxBus|=voice.Bus=="SFX"&&AudioServer.GetBusIndex("SFX")>=0;
+            if(sprite.Visible&&sprite.Texture!=null)frames.Add(sprite.Texture.GetInstanceId());
+            bool isLong=(voice.Stream?.GetLength()??0)>2;
+            if(voice.Playing){if(isLong)longPlaying=true;else shortPlaying=true;}
+            if(voice.Playing&&(!isLong&&!shortShot||isLong&&!longShot))
+            {
+                await Task.Delay(250); // Let the native renderer draw the newly visible cat.
+                if(GodotObject.IsInstanceValid(layer))NGame.Instance!.GetViewport().GetTexture().GetImage().SavePng(Path.Combine(dir,isLong?"becky-rest.png":"becky-above-card.png"));
+                if(isLong)longShot=true;else shortShot=true;
+            }
+        }
+        return(shortPlaying,longPlaying,frames.Count,sfxBus);
     }
     public static async Task Reload(string dir)
     {

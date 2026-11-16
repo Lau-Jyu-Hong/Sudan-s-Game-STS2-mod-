@@ -33,7 +33,8 @@ public static class BeckyController
         {
             await Scan(()=>player.PlayerCombatState?.Hand.Cards.Count??0,async index=>{
                 if(player.Creature.IsDead||CombatManager.Instance.IsOverOrEnding)return;
-                await BeckyPresentation.BeforeCard(player);
+                if(index>=player.PlayerCombatState!.Hand.Cards.Count)return;
+                await BeckyPresentation.BeforeCard(player,player.PlayerCombatState.Hand.Cards[index]);
                 if(player.Creature.IsDead||CombatManager.Instance.IsOverOrEnding||index>=player.PlayerCombatState!.Hand.Cards.Count)return;
                 var card=player.PlayerCombatState!.Hand.Cards[index];
                 GD.Print($"[Artu Becky] position={index+1} card={card.Id} hand=[{string.Join(",",player.PlayerCombatState.Hand.Cards.Select(c=>c.Id))}]");

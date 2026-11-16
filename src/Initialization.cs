@@ -9,6 +9,9 @@ public static class RegisterArtuUi
         var dict=(Dictionary<string,string>)AccessTools.Field(typeof(LocTable),"_translations").GetValue(LocManager.Instance.GetTable("rest_site_ui"))!;
         dict["OPTION_ARTU_EXCHANGE.name"]="换牌";
         dict["OPTION_ARTU_EXCHANGE.description"]="选择一张非黄金苏丹牌，换为随机的高一级苏丹牌；继承剩余期限。";
+        var selection=(Dictionary<string,string>)AccessTools.Field(typeof(LocTable),"_translations").GetValue(LocManager.Instance.GetTable("card_selection"))!;
+        selection["ARTU_CHOOSE"]="选择一张牌。";
+        selection["ARTU_SULTAN_TO_HAND"]="选择一张苏丹牌加入手牌。";
         var cards=(Dictionary<string,string>)AccessTools.Field(typeof(LocTable),"_translations").GetValue(LocManager.Instance.GetTable("cards"))!;
         foreach(var model in ModelDb.All.OfType<ArtuCard>())cards[model.Id.Entry+".selectionScreenPrompt"]="选择卡牌。";
         EventText.Inject();

@@ -195,7 +195,7 @@ public sealed class ObeyPower():ArtuPower("顺应皇命","回合开始时抽1张
     {
         if(p!=Owner.Player)return;
         for(int i=0;i<Amount;i++)foreach(var card in (await CardPileCmd.Draw(ctx,1,p)).OfType<SultanCard>())
-            await CardCmd.AutoPlay(ctx,card,Util.RandomEnemy(p));
+            await CardCmd.AutoPlay(ctx,card,card.TargetType==TargetType.AnyEnemy?Util.RandomEnemy(p):null);
     }
 }
 public sealed class WhisperPower():ArtuPower("耳语之书","下一回合无法造成或受到伤害；该回合结束时失去2力量。")

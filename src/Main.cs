@@ -76,12 +76,12 @@ public static class Util
         var card=p.RunState.CreateCard(canonical,p);
         CardCmd.PreviewCardPileAdd(await CardPileCmd.Add(card,PileType.Deck));
     }
-    public static async Task<CardModel?> Choose(Player p,IEnumerable<CardModel> cards,bool skip=false,PlayerChoiceContext? ctx=null)
+    public static async Task<CardModel?> Choose(Player p,IEnumerable<CardModel> cards,bool skip=false,PlayerChoiceContext? ctx=null,LocString? prompt=null)
     {
         var list=cards.ToList();if(list.Count==0)return null;
         var mutable=list.Select(c=>c.IsMutable?c:p.RunState.CreateCard(c,p)).ToList();
         return (await CardSelectCmd.FromSimpleGrid(ctx is null or ThrowingPlayerChoiceContext?new BlockingPlayerChoiceContext():ctx,mutable,p,
-            new CardSelectorPrefs(CardSelectorPrefs.TransformSelectionPrompt,skip?0:1,1))).FirstOrDefault();
+            new CardSelectorPrefs(prompt??new LocString("card_selection","ARTU_CHOOSE"),skip?0:1,1))).FirstOrDefault();
     }
     public static async Task RemoveSultan(CardModel card)
     {

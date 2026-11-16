@@ -7,7 +7,7 @@ public abstract class RewardCard(int cost,CardType type,CardRarity rarity,Target
     protected Task Hit(PlayerChoiceContext ctx,CardPlay play,int damage)=>play.Target==null?Task.CompletedTask:DamageCmd.Attack(damage).FromCard(play.Card,play).Targeting(play.Target).Execute(ctx);
     protected override void OnUpgrade(){}
 }
-public sealed class DispatchTroops():RewardCard(1,CardType.Skill,CardRarity.Basic,TargetType.AnyEnemy,"调兵遣将","获得{Block}格挡，造成{Damage}伤害。")
+public sealed class DispatchTroops():RewardCard(1,CardType.Skill,CardRarity.Basic,TargetType.AnyEnemy,"调兵遣将","获得{Block:diff()}格挡，造成{Damage:diff()}伤害。")
 {
     protected override IEnumerable<DynamicVar> CanonicalVars=>[new BlockVar(5,ValueProp.Move),new DamageVar(6,ValueProp.Move)];
     protected override async Task OnPlay(PlayerChoiceContext ctx,CardPlay play){await CreatureCmd.GainBlock(Owner.Creature,DynamicVars.Block,play);await Hit(ctx,play,DynamicVars.Damage.IntValue);}

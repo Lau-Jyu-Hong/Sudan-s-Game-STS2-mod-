@@ -26,6 +26,44 @@ public static class V03Verification
             Check("v03 Becky upgrades only add Innate",UpgradeCheck<SuperBecky>(c=>c.Keywords.Contains(CardKeyword.Innate)&&c.EnergyCost.GetWithModifiers(CostModifiers.All)==3));
             Check("v03 support upgrade removes Exhaust",UpgradeCheck<SupportFromAllSides>(c=>!c.Keywords.Contains(CardKeyword.Exhaust)));
             Check("v03 crime replacement card does not exhaust",!ModelDb.Card<CrimeOfDeceiving>().CanonicalKeywords.Contains(CardKeyword.Exhaust));
+            Check("v031 card box uses a hand-selection prompt",new MegaCrit.Sts2.Core.Localization.LocString("card_selection","ARTU_SULTAN_TO_HAND").GetFormattedText()=="选择一张苏丹牌加入手牌。");
+            Check("v031 all four luxury cards target self and keep Curse identity",pool.OfType<SultanCard>().Where(c=>c.Suit==SultanSuit.Luxury).All(c=>c.TargetType==TargetType.Self&&c.Type==CardType.Curse));
+            foreach(var grade in Enum.GetValues<SultanGrade>())
+            using(var f=new Fixture())
+            {
+                f.Await(PowerCmd.Apply<VulnerablePower>(f.Context,f.Enemy,1,f.Player.Creature,null));
+                var card=(SultanCard)f.Combat.CreateCard(SultanCard.Get(SultanSuit.Slaughter,grade),f.Player);
+                f.Await(CardPileCmd.Add(card,PileType.Hand));
+                card.UpdateDynamicVarPreview(CardPreviewMode.Normal,f.Enemy,card.DynamicVars);
+                int expected=(int)Math.Floor(Rules.SlaughterDamage(grade)*1.5m);
+                Check($"v031 {grade} slaughter previews vulnerable damage",(int)Math.Floor(card.DynamicVars.Damage.PreviewValue)==expected&&card.Localization.Any(x=>x.Item2.Contains("{Damage:diff()}")));
+                if(grade>=SultanGrade.Silver)f.Await(CreatureCmd.GainBlock(f.Enemy,20,ValueProp.Unpowered,null));
+                int hp=f.Enemy.CurrentHp;f.Play(card);
+                Check($"v031 {grade} slaughter actually applies vulnerable once",hp-f.Enemy.CurrentHp==expected);
+                if(grade>=SultanGrade.Silver)Check($"v031 {grade} slaughter still ignores block",f.Enemy.Block==20);
+            }
+            using(var f=new Fixture())
+            {
+                f.Await(PowerCmd.Apply<VulnerablePower>(f.Context,f.Enemy,1,f.Player.Creature,null));
+                var card=f.Card<DispatchTroops>();f.Await(CardPileCmd.Add(card,PileType.Hand));
+                card.UpdateDynamicVarPreview(CardPreviewMode.Normal,f.Enemy,card.DynamicVars);
+                Check("v031 starter skill previews vulnerable damage",card.Type==CardType.Skill&&card.DynamicVars.Damage.PreviewValue==9&&card.Localization.Any(x=>x.Item2.Contains("{Damage:diff()}")));
+                int hp=f.Enemy.CurrentHp;f.Play(card);
+                Check("v031 starter skill actually applies vulnerable once",hp-f.Enemy.CurrentHp==9);
+            }
+            using(var f=new Fixture())
+            {
+                f.Await(PowerCmd.Apply<VulnerablePower>(f.Context,f.Enemy,1,f.Player.Creature,null));
+                f.Await(PowerCmd.Apply<ShrinkPower>(f.Context,f.Player.Creature,-1,f.Enemy,null));
+                var slaughter=f.Card<StoneSlaughter>();f.Await(CardPileCmd.Add(slaughter,PileType.Hand));
+                slaughter.UpdateDynamicVarPreview(CardPreviewMode.Normal,f.Enemy,slaughter.DynamicVars);
+                int hp=f.Enemy.CurrentHp;f.Play(slaughter);
+                Check("v031 shrink plus vulnerable gives stone slaughter 11 preview and actual damage",Math.Floor(slaughter.DynamicVars.Damage.PreviewValue)==11&&hp-f.Enemy.CurrentHp==11);
+                var skill=f.Card<DispatchTroops>();f.Await(CardPileCmd.Add(skill,PileType.Hand));
+                skill.UpdateDynamicVarPreview(CardPreviewMode.Normal,f.Enemy,skill.DynamicVars);
+                hp=f.Enemy.CurrentHp;f.Play(skill);
+                Check("v031 shrink plus vulnerable gives starter skill 6 preview and actual damage",Math.Floor(skill.DynamicVars.Damage.PreviewValue)==6&&hp-f.Enemy.CurrentHp==6);
+            }
             Check("v03 tribunal is colorless rare but event-only",ModelDb.Card<Tribunal>().Rarity==CardRarity.Rare&&ModelDb.Card<Tribunal>().Pool.IsColorless&&!pool.Any(c=>c is Tribunal)&&!ModelDb.Card<Tribunal>().CanBeGeneratedInCombat);
 
             using(var f=new Fixture())

@@ -82,7 +82,7 @@ public class WitchCardBox : CustomRelicModel
         var choices=PileType.Draw.GetPile(Owner).Cards.OfType<SultanCard>().Cast<CardModel>().ToList();
         if(choices.Count>0)
         {
-            var selected=await Util.Choose(Owner,choices,false,ctx);
+            var selected=await Util.Choose(Owner,choices,false,ctx,new LocString("card_selection","ARTU_SULTAN_TO_HAND"));
             if(selected!=null){await CardPileCmd.Add(selected,PileType.Hand);if(this is WitchTreasureBox)selected.SetToFreeThisTurn();}
         }
     }

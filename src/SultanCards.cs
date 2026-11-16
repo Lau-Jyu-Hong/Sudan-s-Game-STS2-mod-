@@ -1,5 +1,5 @@
 namespace ArtuMod;
-public abstract class SultanCard(SultanSuit suit,SultanGrade grade) : ArtuCard(1,CardType.Curse,CardRarity.Event,TargetType.AnyEnemy)
+public abstract class SultanCard(SultanSuit suit,SultanGrade grade) : ArtuCard(1,CardType.Curse,CardRarity.Event,suit==SultanSuit.Luxury?TargetType.Self:TargetType.AnyEnemy)
 {
     public SultanSuit Suit {get;}=suit;
     public SultanGrade Grade {get;}=grade;
@@ -14,6 +14,9 @@ public abstract class SultanCard(SultanSuit suit,SultanGrade grade) : ArtuCard(1
     public override bool CanBeGeneratedInCombat=>false;
     public override bool CanBeGeneratedByModifiers=>false;
     public override IEnumerable<CardKeyword> CanonicalKeywords=>[CardKeyword.Eternal];
+    protected override IEnumerable<DynamicVar> CanonicalVars=>Suit==SultanSuit.Slaughter
+        ?[new DamageVar(Rules.SlaughterDamage(Grade),Grade>=SultanGrade.Silver?ValueProp.Move|ValueProp.Unblockable:ValueProp.Move)]
+        :[];
     protected override bool IsPlayable => BeckyController.Active(Owner)||Util.Tyranny(Owner)||Owner.Creature.HasPower<PassPower>()||SultanPayments.HasReplacement(this)||CanPayAny();
     protected override void AddExtraArgsToDescription(LocString loc)
     {
@@ -44,7 +47,7 @@ public abstract class SultanCard(SultanSuit suit,SultanGrade grade) : ArtuCard(1
         "[gold]苏丹牌[/gold]\n"+Text()+"\n期限："+(Grade>=SultanGrade.Silver?"每场战斗":"{Battles}场战斗")+
         (Grade==SultanGrade.Gold?"，剩余{Turns}个自己的回合（跨战斗）。":"。"));
     private string Text()=> (Suit,Grade) switch {
-        (SultanSuit.Slaughter,_)=>$"[gold]代价[/gold]：失去{Rules.SlaughterHpCost(Grade)}生命。造成{Rules.SlaughterDamage(Grade)}"+(Grade>=SultanGrade.Silver?"点无视格挡的伤害。":"点伤害。")+(Grade==SultanGrade.Gold?"若杀死目标，随机对另一敌人重复，直到未能杀死。":""),
+        (SultanSuit.Slaughter,_)=>$"[gold]代价[/gold]：失去{Rules.SlaughterHpCost(Grade)}生命。造成{{Damage:diff()}}"+(Grade>=SultanGrade.Silver?"点无视格挡的伤害。":"点伤害。")+(Grade==SultanGrade.Gold?"若杀死目标，随机对另一敌人重复，直到未能杀死。":""),
         (SultanSuit.Conquest,SultanGrade.Stone)=>"[gold]代价[/gold]：失去全部格挡。每失去5格挡，施加1虚弱与1易伤。",
         (SultanSuit.Conquest,SultanGrade.Bronze)=>"[gold]代价[/gold]：失去1敏捷。获得2力量。",
         (SultanSuit.Conquest,SultanGrade.Silver)=>"[gold]代价[/gold]：失去2敏捷。移除目标一半格挡；直到你的下个回合，目标无法获得格挡，负面状态不会自然减少。",
@@ -60,7 +63,7 @@ public abstract class SultanCard(SultanSuit suit,SultanGrade grade) : ArtuCard(1
     };
     protected override async Task OnPlay(PlayerChoiceContext ctx,CardPlay play)
     {
-        var target=play.Target??Util.RandomEnemy(Owner);
+        var target=Suit==SultanSuit.Luxury?null:play.Target??Util.RandomEnemy(Owner);
         var state=Util.State(Owner);
         int lostBlock=0;
         CardModel? sacrificed=null;
@@ -155,7 +158,7 @@ public abstract class SultanCard(SultanSuit suit,SultanGrade grade) : ArtuCard(1
                 {
                     // Re-enter through game's autoplay pipeline so replay hooks and costs execute.
                     chosen.ExhaustOnNextPlay=true;
-                    using(SultanPayments.AddReplay(chosen))await CardCmd.AutoPlay(ctx,chosen,Util.RandomEnemy(Owner));
+                    using(SultanPayments.AddReplay(chosen))await CardCmd.AutoPlay(ctx,chosen,chosen.TargetType==TargetType.AnyEnemy?Util.RandomEnemy(Owner):null);
                 }
                 if(Grade==SultanGrade.Silver)await AddPower<FreeCardsPower>(ctx,3);
                 if(Grade==SultanGrade.Gold)

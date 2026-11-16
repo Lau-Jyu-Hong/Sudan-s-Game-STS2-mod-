@@ -27,7 +27,7 @@ public abstract class SultanCard(SultanSuit suit,SultanGrade grade) : ArtuCard(1
         loc.Add("Fulfilled",IsMutable&&RunState!=null&&Original.UsedThisBattle?"（本场已履行）":"");
     }
     protected override IEnumerable<MegaCrit.Sts2.Core.HoverTips.IHoverTip> ExtraHoverTips=>base.ExtraHoverTips.Concat([
-        new MegaCrit.Sts2.Core.HoverTips.HoverTip(new LocString("powers","ARTU_TERM_期限"),DeadlineText()+"\n逾期："+ExpiryText()+"\n另外获得1层苏丹之怒。每张原牌独立计时。"){Id="ArtuDeadline:"+Id}]);
+        new MegaCrit.Sts2.Core.HoverTips.HoverTip(new LocString("powers","ARTU_TERM_期限"),DeadlineText()+"\n逾期："+ExpiryText()+"\n另外获得1层苏丹之怒。每张原牌独立计时。")]);
     public string ExpiryText()=>(Suit,Grade) switch{
         (SultanSuit.Slaughter,SultanGrade.Stone)=>"失去10生命。",
         (SultanSuit.Slaughter,SultanGrade.Bronze)=>"失去20生命。",

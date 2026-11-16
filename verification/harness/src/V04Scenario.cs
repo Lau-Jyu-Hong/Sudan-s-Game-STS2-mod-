@@ -43,8 +43,8 @@ public static class V04Scenario
             Engine.TimeScale=6;
             int act=mode=="full"?1:int.Parse(mode);
             Save("conditions.json",new{profile=OS.GetUserDataDir(),mode,act=act+1,balanceTest=false,fixture="actual saved run, normal PlayCardAction; artificial 2000HP/10000 gold/500 energy; enemies HP50000; 6x animation speed"});
-            using var selector=CardSelectCmd.UseSelector(new SelectFirst());
-            var run=await NGame.Instance!.StartNewSingleplayerRun(ModelDb.Character<Artu>(),true,ActModel.GetDefaultList(),[],"ARTU_V04_"+mode,GameMode.Standard,0);
+            using var selector=MegaCrit.Sts2.Core.CardSelection.CardSelectorStack.SetTestSelector(new SelectFirst());
+            var run=await NGame.Instance!.StartNewSingleplayerRun(MegaCrit.Sts2.Core.Entities.Players.Player.CreateForNewRun<Artu>(MegaCrit.Sts2.Core.Unlocks.UnlockState.all,1),true,ActModel.GetDefaultList(),[],"ARTU_V04_"+mode,GameMode.Standard,false,0);
             run.CurrentActIndex=act;await RunManager.Instance.GenerateMap();var player=run.Players[0];
             await CreatureCmd.SetMaxHp(player.Creature,2000);await CreatureCmd.SetCurrentHp(player.Creature,1800);await PlayerCmd.GainGold(10000,player);
             await RunManager.Instance.EnterMapPointInternal(1,MapPointType.Monster,null,true);
@@ -57,6 +57,7 @@ public static class V04Scenario
             async Task Use<T>()where T:CardModel=>await Play(await Add(typeof(T)));
             async Task RewardOption(EventOption option,Func<CardModel,bool> legal,string label)
             {
+                using var nativeUi=MegaCrit.Sts2.Core.CardSelection.CardSelectorStack.SuspendTestSelector();
                 RewardScreen=null;int size=player.Deck.Cards.Count;var chosen=option.Chosen();
                 await Until(()=>RewardScreen!=null,label+" reward screen");var screen=RewardScreen!;
                 var set=(RewardsSet)AccessTools.Field(typeof(NRewardsScreen),"_rewardsSet").GetValue(screen)!;
@@ -80,9 +81,15 @@ public static class V04Scenario
                 }
                 await Clear();await Use<AncientFaith>();int hp=player.Creature.CurrentHp;int before=Plays.Count;await Use<StoneSlaughter>();var child=Plays.Skip(before).Where(p=>p.Card is StoneSlaughter).ToArray();Check("native faith adds one replay with only first HP cost plus 2HP",child.Length==2&&hp-player.Creature.CurrentHp==3);
                 await Clear();await Use<NewWorld>();hp=player.Creature.CurrentHp;before=Plays.Count;await Use<StoneSlaughter>();Check("native new world two appended free replays",Plays.Skip(before).Count(p=>p.Card is StoneSlaughter)==3&&hp-player.Creature.CurrentHp==4);
-                await Clear();await Use<SpiralWaltz>();var cat=await Add(typeof(SuperBecky));var names=new Dictionary<CardModel,char>();foreach(char c in "ABCDEFG")names[await Add(typeof(LoyalHound))]=c;
+                await Clear();await Use<SpiralWaltz>();var cat=await Add(typeof(SuperBecky));var names=new Dictionary<CardModel,char>();
+                // Both Becky effects now draw four cards. Supply eight known draws
+                // so the case is not changed by a shuffle of Spiral Waltz itself.
+                foreach(char c in "ABCD")names[await Add(typeof(LoyalHound))]=c;
+                foreach(char c in "EFGHIJKL")names[await Add(typeof(LoyalHound),PileType.Draw)]=c;
+                Check("waltz fixture has eight ordered draws",string.Concat(player.PlayerCombatState!.DrawPile.Cards.Select(c=>names[c]))=="EFGHIJKL");
                 int turn=player.PlayerCombatState!.TurnNumber;before=Plays.Count;Check("waltz cat starts",cat.TryManualPlay(null));await Until(()=>player.PlayerCombatState?.TurnNumber==turn+1&&player.PlayerCombatState.Phase==PlayerTurnPhase.Play,"copied cat finishes once");
-                Check("waltz copies effect only, second scan of remaining hand",string.Concat(Plays.Skip(before).Where(p=>names.ContainsKey(p.Card)).Select(p=>names[p.Card]))=="ADGCBF");Check("waltz cat has only one actual card use",Plays.Skip(before).Count(p=>p.Card==cat)==1);
+                var scan=string.Concat(Plays.Skip(before).Where(p=>names.ContainsKey(p.Card)).Select(p=>names[p.Card]));
+                Check("waltz copies Becky draw and live scan twice, got "+scan,scan=="ADGCHBILF");Check("waltz cat has only one actual card use",Plays.Skip(before).Count(p=>p.Card==cat)==1);
                 await Clear();var original=player.RunState.CreateCard<GoldSlaughter>(player);original.TurnsSinceUse=2;await CardPileCmd.Add(original,PileType.Deck);await Use<AllByKingsGrace>();var gold=combat.CloneCard(original);gold.DeckVersion=original;await CardPileCmd.Add(gold,PileType.Hand);hp=player.Creature.CurrentHp;await Play(gold);Check("native grace keeps original gold deadline and HP",original.TurnsSinceUse==2&&!original.UsedThisBattle&&hp==player.Creature.CurrentHp);await Util.State(player)!.TickGold(new ThrowingPlayerChoiceContext());Check("native grace freezes turn timer",original.TurnsSinceUse==2);
                 await Clear();await Use<LifeScepter>();hp=player.Creature.CurrentHp;await Use<StoneSlaughter>();Check("native optional scepter payment replaces HP",hp==player.Creature.CurrentHp&&combat.HittableEnemies.Any(e=>e.GetPowerAmount<RegenPower>()==7));
                 await Clear();await PowerCmd.Apply<CrimePower>(new ThrowingPlayerChoiceContext(),player.Creature,8,player.Creature,null);await Use<Quickfoot>();Check("native crime eight creates exactly one native Dazed",player.PlayerCombatState!.DrawPile.Cards.Count(c=>c is MegaCrit.Sts2.Core.Models.Cards.Dazed)==1);

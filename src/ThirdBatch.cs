@@ -73,7 +73,7 @@ public static class AgendaDetails
     public static IEnumerable<IHoverTip> Tips(Player? p)
     {
         for(int group=0;group<3;group++)
-        {int start=group*3;yield return new HoverTip(EventText.Loc("ARTU_AGENDA_"+group,$"革命议程 {group+1}/3"),string.Join("\n\n",Enumerable.Range(start,Math.Min(3,7-start)).Select(i=>Entry(p,i)))){Id="ArtuAgenda:"+group};}
+        {int start=group*3;yield return new HoverTip(EventText.Loc("ARTU_AGENDA_"+group,$"革命议程 {group+1}/3"),string.Join("\n\n",Enumerable.Range(start,Math.Min(3,7-start)).Select(i=>Entry(p,i))));}
     }
     public static void Show(Player p)
     {

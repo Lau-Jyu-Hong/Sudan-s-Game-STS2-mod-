@@ -33,7 +33,7 @@ public static class PersistentStateUi
                 var b=buttons[i];var name=names[i];b.AddThemeFontSizeOverride("font_size",14);b.AddThemeConstantOverride("icon_max_width",20);row.AddChild(b);
                 b.MouseEntered+=()=>{
                     NHoverTipSet.Remove(b);
-                    var tip=NHoverTipSet.CreateAndShow(b,[new HoverTip(new LocString("powers","ARTU_TERM_"+name),ArtuTerms.Detail(name,player)){Id="ArtuState:"+name}],HoverTipAlignment.Right);
+                    var tip=NHoverTipSet.CreateAndShow(b,[new HoverTip(new LocString("powers","ARTU_TERM_"+name),ArtuTerms.Detail(name,player))],HoverTipAlignment.Right);
                     if(tip!=null)
                     {
                         tip.SetAlignment(row,HoverTipAlignment.Right);

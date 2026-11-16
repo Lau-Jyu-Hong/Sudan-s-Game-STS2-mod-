@@ -126,7 +126,7 @@ public sealed class Leaderless : CustomEventModel
         var options=new List<EventOption>();
         if(p.Relics.Any(r=>r.Rarity!=RelicRarity.Starter))options.Add(EventText.Option(this,"ARTU_LEADER_RELIC","易物","失去一件非初始遗物，随机获得一件遗物。",async ()=>{
             var relic=await RelicSelection.Choose(p,p.Relics.Where(r=>r.Rarity!=RelicRarity.Starter).ToList());
-            if(relic==null)return;await RelicCmd.Remove(relic);await RelicCmd.Obtain(RelicFactory.PullNextRelicFromFront(p).ToMutable(),p);EventText.Finish(this,"ARTU_LEADER_DONE","一件旧物被带走，另一件留下。桌首仍然空着。");}));
+            if(relic==null)return;await RelicCmd.Remove(relic);await RelicCmd.Obtain(RelicFactory.PullNextRelicForRewardFromFront(p).ToMutable(),p);EventText.Finish(this,"ARTU_LEADER_DONE","一件旧物被带走，另一件留下。桌首仍然空着。");}));
         options.Add(EventText.Option(this,"ARTU_LEADER_THOUGHT","聆听众声","随机获得一种普通思潮。",async ()=>{
             await Util.AddToDeck(p,Rng.NextItem(new CardModel[]{ModelDb.Card<PureThought>(),ModelDb.Card<UncleanThought>(),ModelDb.Card<FearOfSultan>()})!);
             EventText.Finish(this,"ARTU_LEADER_THOUGHT_DONE","声音汇在一起，终于成为一种你无法忽视的想法。");}));

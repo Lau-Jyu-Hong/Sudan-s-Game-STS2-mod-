@@ -14,7 +14,7 @@ public static class V03Verification
     {
         TestMode.IsOn=true;var passed=new List<string>();
         void Check(string name,bool ok){if(!ok)throw new Exception(name);passed.Add(name);}
-        using var selector=CardSelectCmd.UseSelector(new FirstSelector());
+        using var selector=CardSelectorStack.SetTestSelector(new FirstSelector());
         try
         {
             var pool=ModelDb.CardPool<ArtuCardPool>().AllCards.ToArray();
@@ -261,7 +261,7 @@ public static class V03Verification
         public PlayerChoiceContext Context {get;}=new ThrowingPlayerChoiceContext();
         public Fixture()
         {
-            Reset();var run=RunState.CreateForTest([Player],seed:"ARTU_V03_VERIFY");Combat=new CombatState(runState:run);Combat.AddPlayer(Player);
+            Reset();var run=RunState.CreateForTest([Player],seed:"ARTU_V03_VERIFY");selectorScope=new VerificationSelectorScope(run);Combat=new CombatState(runState:run);Combat.AddPlayer(Player);
             Enemy=Combat.CreateCreature(ModelDb.Monster<BigDummy>().ToMutable(),CombatSide.Enemy,null);Combat.AddCreature(Enemy);CombatManager.Instance.SetUpCombat(Combat);
             var turn=AccessTools.Field(typeof(CombatManager),"_turnState").GetValue(CombatManager.Instance)!;AccessTools.Property(turn.GetType(),"IsInProgress").SetValue(turn,true);
             Await(CreatureCmd.SetMaxHp(Player.Creature,2000));Await(CreatureCmd.SetCurrentHp(Player.Creature,1500));SultanUsage.Reset(Player);PaymentLedger.Reset(Player);
@@ -277,7 +277,8 @@ public static class V03Verification
         public void DrawHook(CardModel card)=>Await(Hook.AfterCardDrawn(Combat,Context,card,true));
         public void FillDraw(int count){for(int i=0;i<count;i++)Await(CardPileCmd.Add(Card<DispatchTroops>(),PileType.Draw));}
         public void AddDeck<T>()where T:CardModel=>Await(Util.AddToDeck(Player,ModelDb.Card<T>()));
-        public void Dispose()=>Reset();
+        readonly VerificationSelectorScope selectorScope;
+        public void Dispose(){try{Reset();}finally{selectorScope.Dispose();}}
     }
     sealed class FirstSelector:ICardSelector
     {

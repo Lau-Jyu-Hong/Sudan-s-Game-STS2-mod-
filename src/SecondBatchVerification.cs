@@ -8,7 +8,7 @@ public static class SecondBatchVerification
     {
         TestMode.IsOn=true;var checks=new List<string>();
         void Check(string n,bool ok){if(!ok)throw new Exception(n);checks.Add("second batch "+n);}
-        using var selector=CardSelectCmd.UseSelector(new First());
+        using var selector=CardSelectorStack.SetTestSelector(new First());
         try
         {
             foreach(var type in new[]{typeof(AtonementPrayer),typeof(AncientFaith),typeof(RebellionIntent),typeof(PerfectWorld),typeof(NewWorld),typeof(RegicidePlan)})

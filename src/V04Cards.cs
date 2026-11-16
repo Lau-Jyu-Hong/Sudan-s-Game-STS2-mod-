@@ -97,7 +97,7 @@ public sealed class BurnTheBoats():RewardCard(2,CardType.Attack,CardRarity.Rare,
         return min==max?min.ToString():$"{min}～{max}";
     }
     protected override IEnumerable<MegaCrit.Sts2.Core.HoverTips.IHoverTip> ExtraHoverTips=>base.ExtraHoverTips.Concat([
-        new MegaCrit.Sts2.Core.HoverTips.HoverTip(new LocString("powers","ARTU_TERM_兵种总计"),"总计为跨敌人的全部独立命中，不是单体或群攻。不同敌人的易伤/减伤不同则显示区间；随机选择、击杀溢出、活力消耗及后续触发可能改变实际总量。格挡和伤害不合并结算。"){Id="ArtuBoatsTotal"}]);
+        new MegaCrit.Sts2.Core.HoverTips.HoverTip(new LocString("powers","ARTU_TERM_兵种总计"),"总计为跨敌人的全部独立命中，不是单体或群攻。不同敌人的易伤/减伤不同则显示区间；随机选择、击杀溢出、活力消耗及后续触发可能改变实际总量。格挡和伤害不合并结算。")]);
     protected override async Task OnPlay(PlayerChoiceContext ctx,CardPlay play){var costs=ArmyPower.All(Owner).Select(a=>(a,a.Amount)).ToArray();int n=costs.Sum(c=>c.Amount);await ArmyPower.ConsumeMany(ctx,Owner,costs,play.Card);for(int i=0;i<n&&!Owner.Creature.IsDead;i++){var enemy=Util.RandomEnemy(Owner);if(enemy!=null)await DamageCmd.Attack(DynamicVars.Damage.IntValue).FromCard(play.Card,play).Targeting(enemy).Execute(ctx);await CreatureCmd.GainBlock(Owner.Creature,DynamicVars.Block,play);}}
     protected override void OnUpgrade()=>DynamicVars.Damage.UpgradeValueBy(2);
 }

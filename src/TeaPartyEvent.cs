@@ -52,7 +52,7 @@ public static class TeaPartyChallenge
         marker.Granted=true;
         foreach(var player in room.CombatState.Players)
         {
-            for(int i=0;i<2;i++)await RelicCmd.Obtain(RelicFactory.PullNextRelicFromFront(player).ToMutable(),player);
+            for(int i=0;i<2;i++)await RelicCmd.Obtain(RelicFactory.PullNextRelicForRewardFromFront(player).ToMutable(),player);
             await CreatureCmd.Heal(player.Creature,20);
         }
     }

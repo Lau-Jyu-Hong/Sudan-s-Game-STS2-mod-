@@ -23,7 +23,7 @@ public static class TeaPartyVerification
             Check("Tea three models registered and localized",new MonsterModel[]{ModelDb.Monster<TeaCrownKnight>(),ModelDb.Monster<TeaWarlord>(),ModelDb.Monster<TeaMercenaryCaptain>()}.All(m=>m.Title.Exists()));
             Check("Tea knight placeholder scenes and encounter exist",ResourceLoader.Exists(ModelDb.Monster<TeaCrownKnight>().CustomVisualPath)&&
                 ResourceLoader.Exists(ModelDb.Monster<TeaWarlord>().CustomVisualPath)&&ResourceLoader.Exists(ModelDb.Monster<TeaMercenaryCaptain>().CustomVisualPath)&&
-                ResourceLoader.Exists(ModelDb.Encounter<TeaPartyEncounter>().CustomScenePath));
+                ResourceLoader.Exists(TeaPartyEncounter.EncounterScenePath));
             Check("Tea cost excludes stone and non-slaughter cards",!TeaPartyChallenge.Eligible(ModelDb.Card<StoneSlaughter>())&&!TeaPartyChallenge.Eligible(ModelDb.Card<GoldLuxury>())&&TeaPartyChallenge.Eligible(ModelDb.Card<BronzeSlaughter>()));
             var consent=new TeaChallengeConsent([1,2]);var waiting=consent.Vote(1,true);
             Check("Tea requires every participant to confirm",!waiting.IsCompleted);
@@ -34,7 +34,9 @@ public static class TeaPartyVerification
             {
                 var players=Enumerable.Range(1,count).Select(i=>Player.CreateForNewRun<Artu>(UnlockState.all,(ulong)i)).ToArray();
                 var run=RunState.CreateForTest(players,seed:"TEA_VERIFY_"+count);run.CurrentActIndex=2;
-                var combat=new CombatState(ModelDb.Encounter<TeaPartyEncounter>().ToMutable(),run,multiplayerScalingModel:run.MultiplayerScalingModel);
+                var combat=new CombatState(ModelDb.Encounter<TeaPartyEncounter>().ToMutable(),run,runModels:run.RunModels);
+                // Production binds these when a CombatRoom is entered; this fixture has no room.
+                foreach(var model in run.RunModels){model.OnRunCreated(run);model.OnCombatEntered(combat);}
                 foreach(var player in players)combat.AddPlayer(player);
                 var king=combat.CreateCreature(ModelDb.Monster<TeaCrownKnight>().ToMutable(),CombatSide.Enemy,"first");combat.AddCreature(king);
                 var captain=combat.CreateCreature(ModelDb.Monster<TeaMercenaryCaptain>().ToMutable(),CombatSide.Enemy,"second");combat.AddCreature(captain);
@@ -132,7 +134,7 @@ public static class TeaPartyVerification
                 // The separate real-room scenario validates the actual CreatureCmd.Kill path.
                 AccessTools.Method(typeof(Creature),"SetCurrentHpInternal").Invoke(captain,[0m]);
                 AccessTools.Method(typeof(Creature),"SetCurrentHpInternal").Invoke(warlord,[0m]);
-                Await(protection.AfterDeath(ctx,warlord,false,0));
+                Await(protection.AfterDeath(ctx,warlord,null,false,0));
                 hp=king.CurrentHp;Await(CreatureCmd.Damage(ctx,king,20,ValueProp.Unpowered|ValueProp.Unblockable,players[0].Creature));
                 Check($"Tea {count}p final ally death immediately releases crown protection",hp-king.CurrentHp==20&&!king.HasPower<RoyalProtectionPower>());
                 ResetTestCombat();

@@ -36,15 +36,15 @@ public static class TeaScenario
             Save("conditions.json",new{mode="Finite tea-party integration scenario",profile=OS.GetUserDataDir(),
                 seed="ARTU_TEA_SCENARIO",testChanges="Player max HP 1000/current HP 900, one added bronze slaughter card; end turns without playing; force enemy deaths after eight enemy turns",balanceTest=false});
             await Task.Delay(1000);
-            var run=await NGame.Instance!.StartNewSingleplayerRun(ModelDb.Character<Artu>(),false,
-                ActModel.GetDefaultList(),[],"ARTU_TEA_SCENARIO",GameMode.Standard,0);
+            var run=await NGame.Instance!.StartNewSingleplayerRun(MegaCrit.Sts2.Core.Entities.Players.Player.CreateForNewRun<Artu>(MegaCrit.Sts2.Core.Unlocks.UnlockState.all,1),false,
+                ActModel.GetDefaultList(),[],"ARTU_TEA_SCENARIO",GameMode.Standard,false,0);
             run.CurrentActIndex=2;
             await RunManager.Instance.GenerateMap();
             var player=run.Players[0];
             await CreatureCmd.SetMaxHp(player.Creature,1000);
             await CreatureCmd.SetCurrentHp(player.Creature,900);
             await Util.AddToDeck(player,ModelDb.Card<BronzeSlaughter>());
-            using var selector=CardSelectCmd.UseSelector(new AutoSlayCardSelector(new Rng(1234)));
+            using var selector=MegaCrit.Sts2.Core.CardSelection.CardSelectorStack.SetTestSelector(new AutoSlayCardSelector(new Rng(1234)));
             await RunManager.Instance.EnterRoomDebug(RoomType.Event,model:ModelDb.Event<RoundTeaParty>());
             await Until(()=>RunManager.Instance.EventSynchronizer.GetLocalEvent().CurrentOptions.Count>0,"Tea event options");
             var model=RunManager.Instance.EventSynchronizer.GetLocalEvent();

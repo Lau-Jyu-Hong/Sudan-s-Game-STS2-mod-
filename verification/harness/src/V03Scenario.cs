@@ -47,8 +47,8 @@ public static class V03Scenario
             Save("conditions.json",new{mode="v0.3 actual manual-action and forced-play pipeline",profile=OS.GetUserDataDir(),seed="ARTU_V03_SCENARIO",
                 testChanges="1000 max/900 current player HP; artificial combat cards; force enemy deaths at end",balanceTest=false});
             await Task.Delay(1000);
-            using var selector=CardSelectCmd.UseSelector(new AutoSlayCardSelector(new Rng(331)));
-            var run=await NGame.Instance!.StartNewSingleplayerRun(ModelDb.Character<Artu>(),false,ActModel.GetDefaultList(),[],"ARTU_V03_SCENARIO",GameMode.Standard,0);
+            using var selector=MegaCrit.Sts2.Core.CardSelection.CardSelectorStack.SetTestSelector(new AutoSlayCardSelector(new Rng(331)));
+            var run=await NGame.Instance!.StartNewSingleplayerRun(MegaCrit.Sts2.Core.Entities.Players.Player.CreateForNewRun<Artu>(MegaCrit.Sts2.Core.Unlocks.UnlockState.all,1),false,ActModel.GetDefaultList(),[],"ARTU_V03_SCENARIO",GameMode.Standard,false,0);
             run.CurrentActIndex=2;await RunManager.Instance.GenerateMap();var player=run.Players[0];
             await CreatureCmd.SetMaxHp(player.Creature,1000);await CreatureCmd.SetCurrentHp(player.Creature,900);
             await RunManager.Instance.EnterRoomDebug(RoomType.Monster,model:ModelDb.Encounter<TeaPartyEncounter>().ToMutable());
@@ -98,7 +98,7 @@ public static class V03Scenario
             await Task.Delay(300);
             Check("Actual bronze luxury adds its replay to external replay without multiplying",Plays.Skip(beforeChild).Count(p=>p.Card==slaughter)==3&&hp-player.Creature.CurrentHp==3);
             await ClearHand();var outer=await Add<BronzeLuxury>();var inner=await Add<BronzeLuxury>();var money=await Add<StoneLuxury>();int gold=player.Gold;beforeChild=Plays.Count;
-            using(var preferBronze=CardSelectCmd.PushSelector(new PreferBronzeSelector()))
+            using(var preferBronze=RunManager.Instance.CardSelectorStack.PushSelector(player,new PreferBronzeSelector()))
             {
                 Check("Actual double bronze luxury recursive test starts",outer.TryManualPlay(null));
                 await Until(()=>Plays.Skip(beforeChild).Any(p=>p.Card==outer),"nested bronze luxury resolves");

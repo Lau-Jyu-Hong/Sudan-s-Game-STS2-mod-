@@ -3,15 +3,15 @@
   "name": "苏丹的游戏 — 阿尔图",
   "author": "Artu Mod Project",
   "description": "阿尔图：16种独立期限苏丹牌、兵种调度、可主动选择的思潮进化、革命议程。罪证在休息处主动移除；每4场胜利可请求宽恕。85张常规牌，含军威如山、贝姬猫咪演出与独立状态图标。Alpha版本。",
-  "version": "v0.4.7-alpha",
-  "min_game_version": "0.111.0",
+  "version": "v0.4.8-alpha",
+  "min_game_version": "0.113.1",
   "has_dll": true,
   "has_pck": true,
   "affects_gameplay": true,
   "dependencies": [
     {
       "id": "BaseLib",
-      "min_version": "3.3.8"
+      "min_version": "3.4.8"
     }
   ]
 }

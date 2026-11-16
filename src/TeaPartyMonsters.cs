@@ -15,7 +15,8 @@ public sealed class TeaPartyEncounter : CustomEncounterModel, ILocalizationProvi
         => CustomContentDictionary.RegisterType(GetType());
     public override bool IsValidForAct(ActModel act) => false;
     public override bool ShouldGiveRewards => false;
-    public override string CustomScenePath => "res://scenes/encounters/knights_elite.tscn";
+    internal const string EncounterScenePath="res://scenes/encounters/knights_elite.tscn";
+    protected override string ScenePath => EncounterScenePath;
     public override IEnumerable<MonsterModel> AllPossibleMonsters =>
         [ModelDb.Monster<TeaCrownKnight>(), ModelDb.Monster<TeaMercenaryCaptain>(), ModelDb.Monster<TeaWarlord>()];
     protected override IReadOnlyList<(MonsterModel,string?)> GenerateMonsters() =>

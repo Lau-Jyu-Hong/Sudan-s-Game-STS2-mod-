@@ -39,8 +39,8 @@ public static class SecondBatchScenario
         async Task Shot(string name){await Task.Delay(350);NGame.Instance!.GetViewport().GetTexture().GetImage().SavePng(Path.Combine(dir,name+".png"));}
         try
         {
-            Engine.TimeScale=6;using var select=CardSelectCmd.UseSelector(new First());
-            var run=await NGame.Instance!.StartNewSingleplayerRun(ModelDb.Character<Artu>(),true,ActModel.GetDefaultList(),[],"ARTU_SECOND_BATCH",GameMode.Standard,0);
+            Engine.TimeScale=6;using var select=MegaCrit.Sts2.Core.CardSelection.CardSelectorStack.SetTestSelector(new First());
+            var run=await NGame.Instance!.StartNewSingleplayerRun(MegaCrit.Sts2.Core.Entities.Players.Player.CreateForNewRun<Artu>(MegaCrit.Sts2.Core.Unlocks.UnlockState.all,1),true,ActModel.GetDefaultList(),[],"ARTU_SECOND_BATCH",GameMode.Standard,false,0);
             var p=run.Players[0];var s=Util.State(p)!;var ctx=new ThrowingPlayerChoiceContext();
             await CreatureCmd.SetMaxHp(p.Creature,2000);await CreatureCmd.SetCurrentHp(p.Creature,1800);await PlayerCmd.GainGold(10000,p);
             await CardPileCmd.RemoveFromDeck(p.Deck.Cards.OfType<SultanCard>().ToArray());CombatState combat=null!;int floor=0;

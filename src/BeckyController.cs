@@ -74,7 +74,10 @@ public static class BeckyController
     public static async Task<IEnumerable<CardModel>> Select(PlayerChoiceContext ctx,Player player,IReadOnlyList<CardModel> cards,int minimum,int maximum)
     {
         if(cards.Count==0)return [];
-        var indexes=Enumerable.Range(0,cards.Count).ToList();Current.Value!.Choices.Shuffle(indexes);
+        var indexes=Enumerable.Range(0,cards.Count).ToArray();
+        // Preserve the old Fisher–Yates order and number of RNG draws.
+        for(int i=indexes.Length-1;i>0;i--)
+        {int j=Current.Value!.Choices.NextInt(i+1);(indexes[i],indexes[j])=(indexes[j],indexes[i]);}
         var selected=indexes.Take(Math.Min(cards.Count,Math.Max(minimum,maximum))).ToList();
         if(TestMode.IsOn)return selected.Select(i=>cards[i]).ToArray();
         var sync=RunManager.Instance.PlayerChoiceSynchronizer;uint id=sync.ReserveChoiceId(player);

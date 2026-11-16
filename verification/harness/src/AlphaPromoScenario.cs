@@ -41,7 +41,7 @@ public static class AlphaPromoScenario
             using(var result=JsonDocument.Parse(File.ReadAllText(Path.Combine(dir,"runtime.json"))))
                 if(result.RootElement.GetProperty("failed").GetInt32()!=0)errors.Add("Mechanism regression has failures; inspect runtime.json.");
             TestMode.IsOn=false;Engine.TimeScale=3;
-            var run=await NGame.Instance!.StartNewSingleplayerRun(ModelDb.Character<Artu>(),true,ActModel.GetDefaultList(),[],"ARTU_ALPHA_SHOWCASE",GameMode.Standard,0);
+            var run=await NGame.Instance!.StartNewSingleplayerRun(MegaCrit.Sts2.Core.Entities.Players.Player.CreateForNewRun<Artu>(MegaCrit.Sts2.Core.Unlocks.UnlockState.all,1),true,ActModel.GetDefaultList(),[],"ARTU_ALPHA_SHOWCASE",GameMode.Standard,false,0);
             var p=run.Players[0];var state=Util.State(p)!;var ctx=new ThrowingPlayerChoiceContext();int floor=0;CombatState combat=null!;
             await CardPileCmd.RemoveFromDeck(p.Deck.Cards.OfType<SultanCard>().ToArray());
             async Task Battle(bool controlled)

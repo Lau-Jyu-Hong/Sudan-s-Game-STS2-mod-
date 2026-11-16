@@ -36,7 +36,10 @@ public static class Lab
         }
         bool isolated=Path.GetFileName(OS.GetUserDataDir().TrimEnd('/','\\'))=="ArtuModVerification";
         if(localScenario!=null&&!isolated)throw new InvalidOperationException("Local promo config is allowed only in ArtuModVerification.");
-        if(isolated)
+        // The offline test launch already uses only isolated local storage.
+        // Do not reinitialize the singleton while the engine is loading settings.
+        var commandLine=OS.GetCmdlineArgs().Concat(OS.GetCmdlineUserArgs()).ToArray();
+        if(isolated&&!commandLine.Zip(commandLine.Skip(1)).Any(a=>a.First=="--force-steam"&&a.Second=="off"))
         {
             // Keep Steam authentication, but never write the demonstration to the player's cloud saves.
             var previousSettings=MegaCrit.Sts2.Core.Saves.SaveManager.Instance.SettingsSave;
@@ -63,6 +66,9 @@ public static class Lab
             ?? localReport ?? throw new InvalidOperationException("ARTU_AUTOPLAY_REPORT is required.");
         Directory.CreateDirectory(reportDirectory);
         await Task.Delay(1000);
+        // Debug room jumps don't interact with tutorial popups; keep them
+        // disabled only in the already-validated isolated profile.
+        MegaCrit.Sts2.Core.Saves.SaveManager.Instance.SetFtuesEnabled(false);
         if(localScenario=="third-batch")
         {
             _ = MegaCrit.Sts2.Core.Helpers.TaskHelper.RunSafely(ThirdBatchScenario.Run(reportDirectory));return;
@@ -72,6 +78,10 @@ public static class Lab
             _ = MegaCrit.Sts2.Core.Helpers.TaskHelper.RunSafely(AlphaPromoScenario.Run(reportDirectory));return;
         }
         if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ARTU_V04_SCENARIO"))) {
+            var compat=Environment.GetEnvironmentVariable("ARTU_V04_SCENARIO")!;
+            if(compat is "compat-recovery" or "compat-shop"){
+                _ = MegaCrit.Sts2.Core.Helpers.TaskHelper.RunSafely(CompatibilityScenario.Run(reportDirectory,compat));return;
+            }
             if(Environment.GetEnvironmentVariable("ARTU_V04_SCENARIO")=="third-batch"){
                 _ = MegaCrit.Sts2.Core.Helpers.TaskHelper.RunSafely(ThirdBatchScenario.Run(reportDirectory));return;
             }

@@ -30,7 +30,7 @@ public static class EvolutionScenario
             TestMode.IsOn=false;Engine.TimeScale=3;
             bool evolve=System.Environment.GetEnvironmentVariable("ARTU_EVOLUTION_CHOICE")=="evolve";
             V04Scenario.RewardScreen=null;
-            var run=await NGame.Instance!.StartNewSingleplayerRun(ModelDb.Character<Artu>(),true,ActModel.GetDefaultList(),[],"ARTU_EVOLUTION_UI",GameMode.Standard,0);
+            var run=await NGame.Instance!.StartNewSingleplayerRun(MegaCrit.Sts2.Core.Entities.Players.Player.CreateForNewRun<Artu>(MegaCrit.Sts2.Core.Unlocks.UnlockState.all,1),true,ActModel.GetDefaultList(),[],"ARTU_EVOLUTION_UI",GameMode.Standard,false,0);
             var player=run.Players[0];var state=Util.State(player)!;
             state.BattleWins=3;state.Anger=1;EvolutionRewards.Qualify(state,6);
             // Avoid the starter relic's interactive opening Sultan selection in this UI fixture.
@@ -66,6 +66,7 @@ public static class EvolutionScenario
             Check("native reward leaves thought qualification pending",EvolutionRewards.Qualified(state,6));
             var decision=(Task)AccessTools.Method(typeof(NRewardButton),"GetReward").Invoke(choices[evolve?1:0],null)!;
             await decision;
+            Check("linked choice removes the pair while keeping ordinary rewards",!controls.Contains(linked)&&controls.OfType<NRewardButton>().Any());
             if(evolve)Check("native evolve button consumes qualification and adds next thought",!EvolutionRewards.Qualified(state,6)&&state.EvolutionResolvedVictory==4&&player.Deck.Cards.Count(c=>c is PerfectWorld)==1);
             else Check("native retain button leaves qualification and current thought unchanged",EvolutionRewards.Qualified(state,6)&&state.EvolutionResolvedVictory==4&&!player.Deck.Cards.Any(c=>c is PerfectWorld));
             File.WriteAllText(Path.Combine(dir,"result.json"),JsonSerializer.Serialize(new{passed=checks.Count,failed=0,checks},new JsonSerializerOptions{WriteIndented=true}));

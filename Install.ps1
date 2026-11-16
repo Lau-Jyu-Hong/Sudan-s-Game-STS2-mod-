@@ -1,5 +1,6 @@
 ﻿param([Parameter(Mandatory)][string]$GameDir)
 $ErrorActionPreference='Stop'
+if(Get-Process SlayTheSpire2 -ErrorAction SilentlyContinue){throw '请先退出游戏，再安装或更新模组。'}
 if(!(Test-Path -LiteralPath (Join-Path $GameDir 'SlayTheSpire2.exe'))){throw '游戏目录不正确。'}
 $taskSource=Join-Path $PSScriptRoot 'package\ArtuMod'
 $taskTarget=Join-Path $GameDir 'mods\ArtuMod'

@@ -29,7 +29,7 @@ public static class ThirdBatchScenario
         try
         {
             TestMode.IsOn=false;Engine.TimeScale=3;
-            var run=await NGame.Instance!.StartNewSingleplayerRun(ModelDb.Character<Artu>(),true,ActModel.GetDefaultList(),[],"ARTU_THIRD_BATCH_UI",GameMode.Standard,0);
+            var run=await NGame.Instance!.StartNewSingleplayerRun(MegaCrit.Sts2.Core.Entities.Players.Player.CreateForNewRun<Artu>(MegaCrit.Sts2.Core.Unlocks.UnlockState.all,1),true,ActModel.GetDefaultList(),[],"ARTU_THIRD_BATCH_UI",GameMode.Standard,false,0);
             var p=run.Players[0];
             await CardPileCmd.RemoveFromDeck(p.Deck.Cards.OfType<SultanCard>().ToArray());
             var note=run.CreateCard<NoteInBook>(p);await CardPileCmd.Add(note,PileType.Deck);

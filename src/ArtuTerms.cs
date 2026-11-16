@@ -80,6 +80,6 @@ public static class ArtuTerms
     public static IEnumerable<IHoverTip> Tips(string text,Player? player=null)
     {
         foreach(var name in Rules.Keys.Where(text.Contains))
-            yield return new HoverTip(new LocString("powers","ARTU_TERM_"+name),Detail(name,player)){Id="ArtuTerm:"+name};
+            yield return new HoverTip(new LocString("powers","ARTU_TERM_"+name),Detail(name,player));
     }
 }

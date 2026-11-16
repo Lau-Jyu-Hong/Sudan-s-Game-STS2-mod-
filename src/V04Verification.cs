@@ -11,7 +11,7 @@ public static class V04Verification
     {
         TestMode.IsOn=true;var checks=new List<string>();
         void Check(string name,bool ok){if(!ok)throw new Exception(name);checks.Add("v04 "+name);}
-        using var selector=CardSelectCmd.UseSelector(new Selector());
+        using var selector=CardSelectorStack.SetTestSelector(new Selector());
         try
         {
             var expected=new Type[]{typeof(KnowYourEnemy),typeof(RobPeterToPayPaul),typeof(CriminalDefense),typeof(SecretMessenger),typeof(MarchingDrum),typeof(CollectiveWisdom),typeof(ScribesManuscript),typeof(AtonementPrayer),typeof(AncientFaith),typeof(RebellionIntent),typeof(ArmyRegularization),typeof(RevolutionaryAcademy),typeof(AllByKingsGrace),typeof(SpiralWaltz),typeof(OpenThought),typeof(LifeScepter),typeof(ProfitFromCrime),typeof(BurnTheBoats),typeof(UndergroundPress),typeof(MoneyOpensDoors),typeof(RoyalConscription)};
@@ -103,7 +103,7 @@ public static class V04Verification
             }
             using(var f=new Fixture())
             {
-                f.Play<LifeScepter>();using(var chooseReplacement=CardSelectCmd.PushSelector(new Selector(true)))
+                f.Play<LifeScepter>();using(var chooseReplacement=RunManager.Instance.CardSelectorStack.PushSelector(f.Player,new Selector(true)))
                 {var scepter=f.Player.Creature.GetPower<LifeScepterPower>()!;Check("optional scepter accepted once",scepter.TryReplace(f.Context).GetAwaiter().GetResult()&&f.Enemy.GetPowerAmount<RegenPower>()==7&&!scepter.Available);f.NextTurn();Check("scepter refreshes only next own turn",scepter.Available);}
             }
             using(var f=new Fixture())
@@ -151,7 +151,7 @@ public static class V04Verification
         public CombatState Combat {get;}public Creature Enemy {get;}
         public WitchCardBox State=>Util.State(Player)!;
         public PlayerChoiceContext Context {get;}=new ThrowingPlayerChoiceContext();
-        public Fixture(){ResetCombat();var run=RunState.CreateForTest([Player],seed:"ARTU_V04_VERIFY");Combat=new CombatState(runState:run);Combat.AddPlayer(Player);Enemy=Combat.CreateCreature(ModelDb.Monster<BigDummy>().ToMutable(),CombatSide.Enemy,null);Combat.AddCreature(Enemy);CombatManager.Instance.SetUpCombat(Combat);var turn=AccessTools.Field(typeof(CombatManager),"_turnState").GetValue(CombatManager.Instance)!;AccessTools.Property(turn.GetType(),"IsInProgress").SetValue(turn,true);Await(CreatureCmd.SetMaxHp(Player.Creature,2000));Await(CreatureCmd.SetCurrentHp(Player.Creature,1500));V04.Reset(Player);SultanUsage.Reset(Player);PaymentLedger.Reset(Player);foreach(var c in Player.PlayerCombatState!.AllCards.ToArray())Await(CardPileCmd.RemoveFromCombat(c));}
+        public Fixture(){ResetCombat();var run=RunState.CreateForTest([Player],seed:"ARTU_V04_VERIFY");selectorScope=new VerificationSelectorScope(run);Combat=new CombatState(runState:run);Combat.AddPlayer(Player);Enemy=Combat.CreateCreature(ModelDb.Monster<BigDummy>().ToMutable(),CombatSide.Enemy,null);Combat.AddCreature(Enemy);CombatManager.Instance.SetUpCombat(Combat);var turn=AccessTools.Field(typeof(CombatManager),"_turnState").GetValue(CombatManager.Instance)!;AccessTools.Property(turn.GetType(),"IsInProgress").SetValue(turn,true);Await(CreatureCmd.SetMaxHp(Player.Creature,2000));Await(CreatureCmd.SetCurrentHp(Player.Creature,1500));V04.Reset(Player);SultanUsage.Reset(Player);PaymentLedger.Reset(Player);foreach(var c in Player.PlayerCombatState!.AllCards.ToArray())Await(CardPileCmd.RemoveFromCombat(c));}
         public static void ResetCombat(){var field=AccessTools.Field(typeof(CombatManager),"_turnState");if(field.GetValue(CombatManager.Instance) is {} turn)AccessTools.Method(turn.GetType(),"Cancel").Invoke(turn,null);field.SetValue(CombatManager.Instance,null);CombatManager.Instance.History.Clear();}
         public void Await(Task t)=>t.GetAwaiter().GetResult();public T Card<T>()where T:CardModel=>Combat.CreateCard<T>(Player);
         public void Apply<T>(int amount)where T:PowerModel=>Await(PowerCmd.Apply<T>(Context,Player.Creature,amount,Player.Creature,null));
@@ -163,7 +163,8 @@ public static class V04Verification
         public T AddHand<T>()where T:CardModel{var c=Card<T>();Await(CardPileCmd.Add(c,PileType.Hand));return c;}
         public void FillDraw(int count){for(int i=0;i<count;i++)Await(CardPileCmd.Add(Card<DispatchTroops>(),PileType.Draw));}
         public void ClearHand(){foreach(var c in Player.PlayerCombatState!.Hand.Cards.ToArray())Await(CardPileCmd.Add(c,PileType.Discard));}
-        public void Dispose()=>ResetCombat();
+        readonly VerificationSelectorScope selectorScope;
+        public void Dispose(){try{ResetCombat();}finally{selectorScope.Dispose();}}
     }
     sealed class Selector(bool replace=false):ICardSelector
     {

@@ -22,7 +22,7 @@ public sealed class RoyalProtectionPower():ArtuPower("王权庇护","只要仍�
         if(side==CombatSide.Player&&lastRound!=state.RoundNumber){spent=0;lastRound=state.RoundNumber;InvokeDisplayAmountChanged();}
         return Task.CompletedTask;
     }
-    public override async Task AfterDeath(PlayerChoiceContext ctx,Creature creature,bool wasRemovalPrevented,float deathAnimLength)
+    public override async Task AfterDeath(PlayerChoiceContext ctx,Creature creature,CardModel? source,bool wasRemovalPrevented,float deathAnimLength)
     {
         if(Owner.IsDead||Protected)return;
         ((TeaCrownKnight)Owner.Monster!).RefreshSoloIntent();
@@ -90,7 +90,7 @@ public abstract class EnemyArmyPower(string name,string description):ArtuPower(n
             // Unpowered skips the native powered-block scaler as well as Dexterity/Frail.
             // Preserve that scaler explicitly, exactly once, without re-enabling generic stats.
             var state=Owner.CombatState!;int count=state.RunState.Players.Count;
-            decimal scale=(Owner.IsPrimaryEnemy||Owner.IsSecondaryEnemy)?(count<=2?count:count*MegaCrit.Sts2.Core.Models.Singleton.MultiplayerScalingModel.GetMultiplayerScaling(state.Encounter,state.RunState.CurrentActIndex)):1;
+            decimal scale=(Owner.IsPrimaryEnemy||Owner.IsSecondaryEnemy)?(count<=2?count:count*MultiplayerScalingModel.GetMultiplayerScaling(state.Encounter,state.RunState.CurrentActIndex)):1;
             await CreatureCmd.GainBlock(Owner,Amount*scale,ValueProp.Unpowered,null);
         }
         if(Kind==2)

@@ -1,4 +1,6 @@
 using BaseLib.Patches.Content;
+using MegaCrit.Sts2.Core.Nodes.Rewards;
+using MegaCrit.Sts2.Core.Nodes.Screens;
 using MegaCrit.Sts2.Core.Rewards;
 using MegaCrit.Sts2.Core.TestSupport;
 namespace ArtuMod;
@@ -55,6 +57,42 @@ public sealed class ThoughtEvolutionSet(Player player,int stage,int victory):Lin
     public int Stage {get;}=stage;public int Victory {get;}=victory;
     protected override RewardType RewardType=>EvolutionRewards.EvolutionSetType;
     public override SerializableReward ToSerializable()=>new(){RewardType=RewardType,GoldAmount=Stage,OptionCount=Victory};
+}
+
+// v0.113.1 child reward signals now pass the claimed button. The native
+// linked widget still wires a zero-argument callback and emits its own
+// signal without the expected argument. Adapt only Artu's linked rewards.
+[HarmonyPatch(typeof(NLinkedRewardSet),"Reload")]
+static class EvolutionLinkedRewardSignal
+{
+    static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+    {
+        var fromAction=AccessTools.Method(typeof(Callable),nameof(Callable.From),[typeof(Action)]);
+        var adapted=AccessTools.Method(typeof(EvolutionLinkedRewardSignal),nameof(Adapt));
+        foreach(var instruction in instructions)
+        {
+            if(instruction.Calls(fromAction))instruction.operand=adapted;
+            yield return instruction;
+        }
+    }
+
+    static Callable Adapt(Action callback)
+        =>callback.Target is NLinkedRewardSet {LinkedRewardSet:ThoughtEvolutionSet}
+            ?Callable.From<NRewardButton>(_=>callback())
+            :Callable.From(callback);
+}
+
+[HarmonyPatch(typeof(NLinkedRewardSet),"GetReward")]
+static class EvolutionLinkedRewardCollected
+{
+    static bool Prefix(NLinkedRewardSet __instance,NRewardsScreen ____rewardsScreen)
+    {
+        if(__instance.LinkedRewardSet is not ThoughtEvolutionSet rewards)return true;
+        ____rewardsScreen.RewardCollectedFrom(__instance);
+        rewards.OnSkipped();
+        __instance.QueueFree();
+        return false;
+    }
 }
 public sealed class ThoughtEvolutionChoice(Player player,int stage,int victory,bool evolve):Reward(player)
 {

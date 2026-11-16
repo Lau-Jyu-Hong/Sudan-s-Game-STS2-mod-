@@ -1134,8 +1134,8 @@ public class GameHookServer
     private static ShopSnapshot? BuildShopSnapshot(Player? player)
     {
         var merchantRoom = NRun.Instance?.MerchantRoom;
-        var inventory = merchantRoom?.Room.GetLocalInventory();
-        if (inventory == null) return null;
+        if (merchantRoom == null || RunManager.Instance.MerchantSynchronizer is not { } merchant) return null;
+        var inventory = merchant.GetLocalInventory();
 
         int gold = player?.Gold ?? 0;
         bool canLeave = merchantRoom.ProceedButton.IsEnabled;
@@ -2843,13 +2843,12 @@ public class GameHookServer
     /// choice_type 取值对应 EntryType 字段：
     ///   "character_card" / "colorless_card" / "relic" / "potion"
     ///
-    /// 使用 UI 按钮 ForceClick 而非直接调用 MerchantEntry.OnTryPurchaseWrapper，
-    /// 因为后者是 async Task 方法，.Result 会阻塞主线程导致死锁（尤其是删牌需要 UI 交互）。
+    /// 购买使用与商店 UI 相同的 MerchantSynchronizer；不在游戏主线程等待选牌。
     /// </summary>
     private static ActionResult ExecuteShopAction(ActionRequest request)
     {
         var merchantRoom = NRun.Instance?.MerchantRoom;
-        if (merchantRoom == null || merchantRoom.Room.GetLocalInventory() == null)
+        if (merchantRoom == null || RunManager.Instance.MerchantSynchronizer is not { } merchant)
             return new ActionResult(false, "Not in a shop");
 
         if (request.ShopAction == "open_inventory")
@@ -2882,10 +2881,7 @@ public class GameHookServer
         if (!merchantRoom.Inventory.IsOpen)
             merchantRoom.OpenInventory();
 
-        // 获取数据模型和 UI 槽位
-        var dataInv = merchantRoom.Room.GetLocalInventory();
-        var uiInv = merchantRoom.Inventory;
-        var allSlots = uiInv.GetAllSlots().ToList();
+        var dataInv = merchant.GetLocalInventory();
 
         if (request.ShopAction == "remove_card")
         {
@@ -2894,28 +2890,14 @@ public class GameHookServer
                 return new ActionResult(false, "Card removal not available");
             if (!removalEntry.EnoughGold)
                 return new ActionResult(false, "Not enough gold");
-            // remove_card 触发 OneOffSynchronizer.DoLocalMerchantCardRemoval 需要 UI 选牌。
-            // NMerchantCardRemoval.OnTryPurchase(MerchantInventory) 与鼠标点击走同一购买路径
-            // （扣金币 + 打开牌组选牌）。它是 async Task，不能 .Result 主线程死锁，
-            // 用 TaskHelper.RunSafely 走 fire-and-forget 避免阻塞主线程。
-            var removalSlot = allSlots.OfType<NMerchantCardRemoval>().FirstOrDefault();
-            if (removalSlot == null)
-                return new ActionResult(false, "Card removal slot not found");
-            var onTryPurchase = typeof(NMerchantCardRemoval).GetMethod(
-                "OnTryPurchase",
-                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-            if (onTryPurchase == null)
-                return new ActionResult(false, "Failed to invoke card removal");
-            TaskHelper.RunSafely((Task)onTryPurchase.Invoke(removalSlot, new object[] { dataInv })!);
-
-            return new ActionResult(true, null);
+            return StartPurchase(merchant.PurchaseLocalEntry(removalEntry));
         }
 
         if (request.ShopAction == "buy")
         {
             var entryType = request.ChoiceType;
             var itemIndex = request.ItemIndex;
-            if (entryType == null || itemIndex == null)
+            if (entryType == null || itemIndex == null || itemIndex < 0)
                 return new ActionResult(false, "choice_type and item_index are required for shop buy");
 
             MerchantEntry? entry = entryType switch
@@ -2940,13 +2922,19 @@ public class GameHookServer
             if (!entry.EnoughGold)
                 return new ActionResult(false, "Not enough gold");
 
-            var buySuccess = entry.OnTryPurchaseWrapper(dataInv);
-            return buySuccess.Result
-                ? new ActionResult(true, null)
-                : new ActionResult(false, "Purchase failed");
+            return StartPurchase(merchant.PurchaseLocalEntry(entry));
         }
 
         return new ActionResult(false, $"Unknown shop_action: {request.ShopAction}. Use leave/buy/remove_card.");
+    }
+
+    private static ActionResult StartPurchase(Task<bool> purchase)
+    {
+        if (purchase.IsCompletedSuccessfully)
+            return purchase.Result ? new ActionResult(true, null) : new ActionResult(false, "Purchase failed");
+        TaskHelper.RunSafely(purchase);
+        // Like PlayCardAction, async success here means dispatched, not settled.
+        return new ActionResult(true, null);
     }
 
     /// <summary>

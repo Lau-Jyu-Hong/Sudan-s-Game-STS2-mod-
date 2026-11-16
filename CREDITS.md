@@ -121,3 +121,7 @@ Icons made by **Lorc** and **Delapouite**. Available on https://game-icons.net.
 ---
 
 *首次整理：2026-10-11；同日加入工程，补齐实际音效、猫动画与 BaseLib 依赖登记。原作政策及私人邮件条件沿用维护者提供的说明，不代表本次独立核验或额外授权。后续版本请以实际打包素材、技术依赖和许可记录为准更新。*
+# 本轮资源复用
+
+军威如山状态图标复用已署名的 Lorc / Game-icons.net 的 backup 图形（CC BY 3.0）。对应 `assets/status-icons/armymightpower.png` 与 `assets/ArtuMod/images/status/armymightpower.tres`；沿用现有调色、底板和尺寸转换。完整来源见 `assets/status-icons/来源与对应表.md`。
+

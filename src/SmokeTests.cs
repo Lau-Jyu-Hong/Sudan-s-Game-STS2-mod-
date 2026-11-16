@@ -7,7 +7,10 @@ public static class SmokeTests
     public static void Run(string output,bool quitAfterChecks)
     {
         var checks=new List<string>();var errors=new List<string>();
-        void Check(string name,Func<bool> test){try{if(!test())throw new Exception("Assertion failed");checks.Add(name);}catch(Exception e){errors.Add(name+": "+e);}}
+        Directory.CreateDirectory(System.IO.Path.GetDirectoryName(output)!);
+        void Progress(string text)=>File.AppendAllText(output+".progress.log",$"{DateTime.UtcNow:O} {text}\n");
+        Progress("BEGIN smoke tests");
+        void Check(string name,Func<bool> test){Progress("START "+name);try{if(!test())throw new Exception("Assertion failed");checks.Add(name);Progress("PASS "+name);}catch(Exception e){errors.Add(name+": "+e);Progress("FAIL "+name+": "+e.Message);}}
         Check("Artu character registered",()=>ModelDb.AllCharacters.Any(c=>c is Artu));
         Check("10-card starter deck, two of each suit",()=>ModelDb.Character<Artu>().StartingDeck.Count()==10&&ModelDb.Character<Artu>().StartingDeck.OfType<SultanCard>().GroupBy(c=>c.Suit).All(g=>g.Count()==2));
         Check("16 Sultan classes registered",()=>ModelDb.All.OfType<SultanCard>().Count()==16);
@@ -41,6 +44,7 @@ public static class SmokeTests
         Check("Repair verification",()=>{checks.AddRange(RepairVerification.Run());return true;});
         Check("Second batch verification",()=>{checks.AddRange(SecondBatchVerification.Run());return true;});
         Check("v0.4.3 incremental verification",()=>{checks.AddRange(V046Verification.Run());return true;});
+        Check("third batch gameplay verification",()=>{checks.AddRange(ThirdBatchVerification.Run());return true;});
         Directory.CreateDirectory(System.IO.Path.GetDirectoryName(output)!);
         var pool=ModelDb.Character<Artu>().CardPool.GetUnlockedCards(MegaCrit.Sts2.Core.Unlocks.UnlockState.all,CardMultiplayerConstraint.SingleplayerOnly).OfType<ArtuCard>().Where(c=>c.Rarity is CardRarity.Common or CardRarity.Uncommon or CardRarity.Rare).OrderBy(c=>c.Rarity).ThenBy(c=>c.Id.ToString()).Select(c=>new{id=c.Id.ToString(),name=c.Title,rarity=c.Rarity.ToString(),type=c.Type.ToString(),energy=c.EnergyCost.Canonical,upgradable=c.MaxUpgradeLevel>0,c.Reading,c.Thought,c.CanBeGeneratedInCombat,c.CanBeGeneratedByModifiers,description=c.Description.GetFormattedText()});
         File.WriteAllText(System.IO.Path.Combine(System.IO.Path.GetDirectoryName(output)!,"registered-pool.json"),JsonSerializer.Serialize(pool,new JsonSerializerOptions{WriteIndented=true}));

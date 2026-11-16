@@ -18,6 +18,7 @@ public class WitchCardBox : CustomRelicModel
     [SavedProperty] public int NoBuyingShops {get;set;}
     [SavedProperty] public bool ActiveShopTax {get;set;}
     [SavedProperty] public bool ActiveShopBan {get;set;}
+    [SavedProperty] public int ActiveShopFloor {get;set;}=-1;
     [SavedProperty] public int StrengthLockBattles {get;set;}
     [SavedProperty] public bool GrowthLocked {get;set;}
     [SavedProperty] public int MaxHpLimit {get;set;}
@@ -107,21 +108,24 @@ public class WitchCardBox : CustomRelicModel
         {card.UsedThisBattle=false;card.UsedThisTurn=false;card.FailedThisBattle=false;card.LastCountedTurn=0;}
         await EnforceHp();if(Owner.Creature.IsDead)return;
         var ctx=new ThrowingPlayerChoiceContext();
-        if(Anger>=1)await PowerCmd.Apply<WeakPower>(ctx,Owner.Creature,1,null,null);
-        if(Anger>=3)await PowerCmd.Apply<FrailPower>(ctx,Owner.Creature,1,null,null);
-        if(Anger>=9)await Util.LoseHp(ctx,Owner,10);
-        if(WeakBattles>0){await PowerCmd.Apply<WeakPower>(ctx,Owner.Creature,5,null,null);WeakBattles=0;}
-        if(VulnerableBattles>0){await PowerCmd.Apply<VulnerablePower>(ctx,Owner.Creature,5,null,null);VulnerableBattles=0;}
-        if(StrengthPenalty>0)await PowerCmd.Apply<StrengthPower>(ctx,Owner.Creature,-StrengthPenalty,null,null);
+        if(Anger>=1){await PowerCmd.Apply<WeakPower>(ctx,Owner.Creature,1,null,null);ArtuFeedback.Show(Owner,"苏丹之怒：开场施加1虚弱。");}
+        if(Anger>=3){await PowerCmd.Apply<FrailPower>(ctx,Owner.Creature,1,null,null);ArtuFeedback.Show(Owner,"苏丹之怒：开场施加1脆弱。");}
+        if(Anger>=9){int hp=Owner.Creature.CurrentHp;await Util.LoseHp(ctx,Owner,10);ArtuFeedback.Show(Owner,$"苏丹之怒：开场失去{hp-Owner.Creature.CurrentHp}生命。");}
+        if(WeakBattles>0){await PowerCmd.Apply<WeakPower>(ctx,Owner.Creature,5,null,null);WeakBattles=0;ArtuFeedback.Show(Owner,"岩石征服逾期：本场开场施加5虚弱。");}
+        if(VulnerableBattles>0){await PowerCmd.Apply<VulnerablePower>(ctx,Owner.Creature,5,null,null);VulnerableBattles=0;ArtuFeedback.Show(Owner,"岩石纵欲逾期：本场开场施加5易伤。");}
+        if(StrengthPenalty>0){await PowerCmd.Apply<StrengthPower>(ctx,Owner.Creature,-StrengthPenalty,null,null);ArtuFeedback.Show(Owner,$"青铜征服逾期：开场力量−{StrengthPenalty}。");}
         foreach(var enemy in Util.Enemies(Owner).ToArray())
         {
             if(StatsLocked)await PowerCmd.Apply<IntangiblePower>(ctx,enemy,1,null,null);
             if(BoulderBattles>0)await PowerCmd.Apply<SiegeBoulderPower>(ctx,enemy,5,null,null);
         }
-        if(BoulderBattles>0)BoulderBattles--;
-        if(MirrorHealBattles>0){await PowerCmd.Apply<MirrorHealingPower>(ctx,Owner.Creature,1,null,null);MirrorHealBattles--;}
-        if(StrengthLockBattles>0){await PowerCmd.Apply<NoDexterityPower>(ctx,Owner.Creature,1,null,null);StrengthLockBattles--;}
-        if(Anger>=5)await CardPileCmd.AddToCombatAndPreview<Wound>(Owner.Creature,PileType.Draw,1,Owner,CardPilePosition.Random);
+        if(BoulderBattles>0){BoulderBattles--;ArtuFeedback.Show(Owner,"青铜纵欲逾期：本场敌人获得苏丹的滚石。");}
+        if(MirrorHealBattles>0){await PowerCmd.Apply<MirrorHealingPower>(ctx,Owner.Creature,1,null,null);MirrorHealBattles--;ArtuFeedback.Show(Owner,"白银纵欲逾期：本场每次回复生命，所有敌人恢复等量生命。");}
+        if(StrengthLockBattles>0){await PowerCmd.Apply<NoDexterityPower>(ctx,Owner.Creature,1,null,null);StrengthLockBattles--;ArtuFeedback.Show(Owner,"白银征服逾期：本场无法获得敏捷。");}
+        if(Anger>=5){await CardPileCmd.AddToCombatAndPreview<Wound>(Owner.Creature,PileType.Draw,1,Owner,CardPilePosition.Random);ArtuFeedback.Show(Owner,"苏丹之怒：抽牌堆加入1伤口。");}
+        if(StatsLocked)ArtuFeedback.Show(Owner,"黄金征服逾期：力量/敏捷增长受限，敌人开场获得1无实体。");
+        if(HealingLocked)ArtuFeedback.Show(Owner,"黄金纵欲逾期：无法回复生命。");
+        if(Owner.Creature.GetPowerAmount<CrimePower>()>=3)ArtuFeedback.Show(Owner,"罪证≥3：每回合自然抽牌数−1。");
     }
     public override async Task AfterPlayerTurnStart(PlayerChoiceContext ctx,Player player)
     {
@@ -135,7 +139,7 @@ public class WitchCardBox : CustomRelicModel
     }
     public override async Task AfterEnergyReset(Player player)
     {
-        if(player==Owner&&Anger>=7&&player.PlayerCombatState?.TurnNumber==1)await PlayerCmd.LoseEnergy(1,Owner);
+        if(player==Owner&&Anger>=7&&player.PlayerCombatState?.TurnNumber==1){int before=player.PlayerCombatState.Energy;await PlayerCmd.LoseEnergy(1,Owner);ArtuFeedback.Show(Owner,$"苏丹之怒≥7：首回合能量−{before-player.PlayerCombatState.Energy}（{before}→{player.PlayerCombatState.Energy}）。");}
     }
     public override bool ShouldPlay(CardModel card,AutoPlayType type)
     {
@@ -160,7 +164,23 @@ public class WitchCardBox : CustomRelicModel
     public override Task AfterItemPurchased(Player player,MegaCrit.Sts2.Core.Entities.Merchant.MerchantEntry item,int spent)
     {if(player==Owner&&ShopPurchases>0)ShopPurchases--;return Task.CompletedTask;}
     public override Task AfterRoomEntered(AbstractRoom room)
-    {if(room is MerchantRoom){ActiveShopTax=ShopVisits>0;ActiveShopBan=NoBuyingShops>0;if(ShopVisits>0)ShopVisits--;if(NoBuyingShops>0)NoBuyingShops--;}else{ActiveShopTax=false;ActiveShopBan=false;}return EnforceHp();}
+    {
+        if(room is MerchantRoom)
+        {
+            int floor=Owner.RunState.TotalFloor;
+            if(ActiveShopFloor!=floor)
+            {
+                // Preserve the active ban on old saves made inside the merchant before this field existed.
+                bool legacyBan=ActiveShopFloor<0&&ActiveShopBan;
+                ActiveShopTax=ShopVisits>0;ActiveShopBan=legacyBan||NoBuyingShops>0;
+                if(ShopVisits>0)ShopVisits--;if(NoBuyingShops>0)NoBuyingShops--;ActiveShopFloor=floor;
+            }
+            if(ActiveShopBan)ArtuFeedback.Show(Owner,"白银奢靡逾期：本店禁止购买商品与移除服务；离开后解除。");
+            if(ActiveShopTax||ShopPurchases>0)ArtuFeedback.Show(Owner,"奢靡逾期：当前适用的商品价格翻倍。");
+        }
+        else {if(ActiveShopBan)ArtuFeedback.Show(Owner,"已离开被限制的商店，禁购解除。");ActiveShopTax=false;ActiveShopBan=false;ActiveShopFloor=-1;}
+        return EnforceHp();
+    }
     public override Task BeforeRoomEntered(AbstractRoom room)
     {
         return Task.CompletedTask;
@@ -204,6 +224,7 @@ public class WitchCardBox : CustomRelicModel
     }
     public async Task Expire(PlayerChoiceContext ctx,SultanCard card)
     {
+        ArtuFeedback.Show(Owner,$"{card.Title}逾期：{card.ExpiryText()}苏丹之怒+1。");
         Anger++;card.BattlesRemaining=Rules.BattleDeadline(card.Grade);
         await EnforceHp();if(Owner.Creature.IsDead)return;
         switch(card.Suit)

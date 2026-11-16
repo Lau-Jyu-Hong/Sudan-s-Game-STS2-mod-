@@ -25,8 +25,8 @@ public static class PersistentStateUi
             var row=new HBoxContainer{Name="StatusRow",Position=new Vector2(18,145)};
             row.AddThemeConstantOverride("separation",5);
             layer.AddChild(row);__instance.AddChild(layer);
-            var names=new[]{"罪证","苏丹之怒","苏丹的嘲弄","虔信","狂信","谋逆"};
-            var icons=new[]{"crimepower","stateanger","statemockery","statedevotion","statefanaticism","statetreason"}.Select(n=>"res://ArtuMod/images/status/"+n+".tres").ToArray();
+            var names=new[]{"罪证","苏丹之怒","苏丹的嘲弄","虔信","狂信","谋逆","商店禁购"};
+            var icons=new[]{"crimepower","stateanger","statemockery","statedevotion","statefanaticism","statetreason","supplyblockadepower"}.Select(n=>"res://ArtuMod/images/status/"+n+".tres").ToArray();
             var buttons=names.Select((n,i)=>new Button{Name="State"+i,CustomMinimumSize=new Vector2(56,30),FocusMode=Control.FocusModeEnum.None,Icon=ResourceLoader.Load<Texture2D>(icons[i]),ExpandIcon=true}).ToArray();
             for(int i=0;i<buttons.Length;i++)
             {
@@ -44,15 +44,17 @@ public static class PersistentStateUi
                 };
                 b.MouseExited+=()=>NHoverTipSet.Remove(b);
             }
+            var agenda=new Button{Name="Agenda",Text="议程",FocusMode=Control.FocusModeEnum.None};row.AddChild(agenda);agenda.Pressed+=()=>AgendaDetails.Show(player);
+            var banBanner=new Label{Text="白银奢靡逾期：本店禁止购买商品与移除服务，离开后解除。",Position=new Vector2(380,110),MouseFilter=Control.MouseFilterEnum.Ignore};banBanner.AddThemeFontSizeOverride("font_size",24);banBanner.AddThemeColorOverride("font_color",new Color("ff8b80"));layer.AddChild(banBanner);
             var previewCache=new Dictionary<ulong,string>();
             void Refresh()
             {
                 var s=Util.State(player);if(s==null){row.Visible=false;return;}
-                int[] values={V04.Crime(player),s.Anger,s.Mockery,s.Devotion,s.Fanaticism,s.Treason};
-                var shortNames=new[]{"罪","怒","嘲","虔","狂","逆"};
+                int[] values={V04.Crime(player),s.Anger,s.Mockery,s.Devotion,s.Fanaticism,s.Treason,s.ActiveShopBan?1:s.NoBuyingShops};
+                var shortNames=new[]{"罪","怒","嘲","虔","狂","逆","禁购"};
                 for(int i=0;i<buttons.Length;i++)
-                {if(values[i]<=0&&buttons[i].Visible)NHoverTipSet.Remove(buttons[i]);buttons[i].Visible=values[i]>0;buttons[i].Text=shortNames[i]+(i<3?values[i].ToString():Math.Min(values[i],3)+"/3");}
-                row.Visible=values.Any(v=>v>0);
+                {if(values[i]<=0&&buttons[i].Visible)NHoverTipSet.Remove(buttons[i]);buttons[i].Visible=values[i]>0;buttons[i].Text=shortNames[i]+(i<3?values[i].ToString():i<6?Math.Min(values[i],3)+"/3":"");}
+                agenda.Visible=RevolutionAgenda.Active(player);row.Visible=values.Any(v=>v>0)||agenda.Visible;banBanner.Visible=s.ActiveShopBan&&player.RunState.CurrentRoom is MerchantRoom;
                 var node=NCombatRoom.Instance?.GetCreatureNode(player.Creature);
                 var view=__instance.GetViewportRect().Size;
                 var anchor=node==null?new Vector2(18,view.Y-105):node.Hitbox.GetGlobalTransformWithCanvas()*new Vector2(node.Hitbox.Size.X/2,node.Hitbox.Size.Y)+new Vector2(-row.Size.X/2,65);

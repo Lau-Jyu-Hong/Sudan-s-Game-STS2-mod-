@@ -13,6 +13,7 @@
   "VeteranPower": ["精兵", "delapouite/centurion-helmet", "gold"],
   "ElitePower": ["锐士", "lorc/crossed-swords", "purple"],
   "AllArmyPower": ["全军出击", "lorc/backup", "gold"],
+  "ArmyMightPower": ["军威如山", "lorc/backup", "gold"],
   "GloryPower": ["追忆过去的荣光", "lorc/laurel-crown", "gold"],
   "TrainingPower": ["训练兵队", "delapouite/team-upgrade", "green"],
   "WarSongPower": ["强军战歌", "delapouite/trumpet", "gold"],

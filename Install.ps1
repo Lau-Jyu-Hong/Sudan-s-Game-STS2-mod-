@@ -1,4 +1,4 @@
-﻿param([string]$GameDir='')
+﻿param([Parameter(Mandatory)][string]$GameDir)
 $ErrorActionPreference='Stop'
 if(!(Test-Path -LiteralPath (Join-Path $GameDir 'SlayTheSpire2.exe'))){throw '游戏目录不正确。'}
 $taskSource=Join-Path $PSScriptRoot 'package\ArtuMod'

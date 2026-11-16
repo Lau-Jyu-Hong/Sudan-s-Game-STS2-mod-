@@ -25,7 +25,7 @@ public static class RevolutionAgenda
         var s=Util.State(p);if(s==null||!Active(p)||!Checking.Add(p))return;
         try
         {
-            s.AgendaFlags=Calculate(p);
+            UpdateFlags(p);
             if((s.AgendaFlags&127)==127&&!s.ConceptGranted)
             {s.ConceptGranted=true;if(!p.Deck.Cards.Any(c=>c is RevolutionConcept))await Util.AddToDeck(p,ModelDb.Card<RevolutionConcept>());}
             var d=V04.Data(p);if(!d.NoteActive||p.PlayerCombatState==null||p.Creature.IsDead)return;
@@ -38,13 +38,19 @@ public static class RevolutionAgenda
                 if(bit==8)for(int kind=1;kind<=3;kind++)await ArmyPower.Gain(ctx,p,kind,2);
                 if(bit==16)await V04.Fetch(ctx,p,c=>c is ArtuCard {Reading:true});
             }
-            s.AgendaFlags=Calculate(p);
+            UpdateFlags(p);
             if((s.AgendaFlags&127)==127&&!s.ConceptGranted)
             {s.ConceptGranted=true;if(!p.Deck.Cards.Any(c=>c is RevolutionConcept))await Util.AddToDeck(p,ModelDb.Card<RevolutionConcept>());}
         }
         finally{Checking.Remove(p);}
     }
     public static Task Check(Player p,PlayerChoiceContext ctx)=>Refresh(p,ctx);
+    static void UpdateFlags(Player p)
+    {
+        var s=Util.State(p)!;int before=s.AgendaFlags;s.AgendaFlags=Calculate(p);
+        for(int i=0;i<7;i++)if((before&(1<<i))==0&&(s.AgendaFlags&(1<<i))!=0)
+            ArtuFeedback.Show(p,$"革命议程完成：{AgendaDetails.Names[i]}。{AgendaDetails.Rewards[i]}");
+    }
 }
 public static class AgendaUi
 {

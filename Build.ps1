@@ -1,6 +1,6 @@
 ﻿param(
-    [string]$GameDir='',
-    [string]$BaseLibPath='',
+    [Parameter(Mandatory)][string]$GameDir,
+    [Parameter(Mandatory)][string]$BaseLibPath,
     [string]$DotNet='dotnet'
 )
 $ErrorActionPreference='Stop'
@@ -13,4 +13,4 @@ Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'src\bin\Release\net9.0\ArtuMod.
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'CREDITS.md') -Destination (Join-Path $PSScriptRoot 'package\ArtuMod\CREDITS.md') -Force
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'assets\status-icons\来源与对应表.md') -Destination (Join-Path $PSScriptRoot 'package\ArtuMod\ICON_CREDITS.md') -Force
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'assets\status-icons\UPSTREAM-LICENSE.txt') -Destination (Join-Path $PSScriptRoot 'package\ArtuMod\LICENSE_ICONS.txt') -Force
-Write-Output '编译成功。package\ArtuMod 包含安装用文件。'
+Write-Output '编译成功。DLL 已输出至 package\ArtuMod。安装前请另备同版本的 ArtuMod.pck。'

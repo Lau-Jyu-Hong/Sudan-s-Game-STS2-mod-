@@ -21,7 +21,7 @@ public static class V04
     public static async Task<CardModel?> Fetch(PlayerChoiceContext ctx,Player p,Func<CardModel,bool> filter,bool drawOnly=false)
     {var pcs=p.PlayerCombatState!;var cards=drawOnly?pcs.DrawPile.Cards:pcs.DrawPile.Cards.Concat(pcs.DiscardPile.Cards);var card=await Util.Choose(p,cards.Where(filter),false,ctx);if(card!=null)await CardPileCmd.Add(card,PileType.Hand);return card;}
     public static async Task<int> ChooseArmy(PlayerChoiceContext ctx,Player p,IEnumerable<int> kinds)
-    {var options=kinds.Distinct().Select(k=>ArmyChoice.Create(k)).Cast<CardModel>().ToArray();return (await Util.Choose(p,options,false,ctx) as ArmyChoice)?.Kind??kinds.First();}
+    {var options=kinds.Distinct().Select(k=>{var c=ArmyChoice.Create(k);c.Owner=p;return c;}).Cast<CardModel>().ToArray();return (await Util.Choose(p,options,false,ctx) as ArmyChoice)?.Kind??kinds.First();}
     public static async Task<int> Convert(PlayerChoiceContext ctx,Player p,int limit,int? kind,CardModel? source=null)
     {
         var levy=p.Creature.GetPower<LevyPower>();if(levy==null)return 0;int n=Math.Min(limit,levy.Amount);
@@ -74,12 +74,17 @@ public sealed class ArmyChoice:OptionCard
     public ArmyChoice():base("兵种","选择兵种。"){}
     public static ArmyChoice Create(int kind){var c=(ArmyChoice)ModelDb.Card<ArmyChoice>().ToMutable();c.Kind=kind;((StringVar)c.DynamicVars["Choice"]).StringValue=new[]{"杂兵","士兵","精兵","锐士"}[kind];return c;}
     protected override IEnumerable<DynamicVar> CanonicalVars=>[new StringVar("Choice","士兵")];
-    public override List<(string,string)> Localization=>new CardLoc("{Choice}","选择{Choice}。");
+    public override string Title=>ArmyInfo.Name(Kind);
+    protected override void AddExtraArgsToDescription(LocString loc)=>loc.Add("Rules",ArtuTerms.Rules[ArmyInfo.Name(Kind)]);
+    protected override IEnumerable<MegaCrit.Sts2.Core.HoverTips.IHoverTip> ExtraHoverTips=>ArtuTerms.Tips(ArmyInfo.Name(Kind));
+    public override List<(string,string)> Localization=>new CardLoc("兵种选择","{Rules}");
 }
-public sealed class AcademyPower():ArtuPower("革命军校","每回合开始先获得2杂兵，再转化至多{Amount}杂兵为选定高级兵种。")
+public sealed class AcademyPower():ArtuPower("革命军校","已选择：{Army}。每回合开始先获得2杂兵，再转化至多{Amount}杂兵为{Army}。")
 {
     public override PowerInstanceType InstanceType=>PowerInstanceType.Instanced;
-    public int Kind {get;set;}=1;
+    int kind=1;
+    public int Kind {get=>kind;set{kind=value;((StringVar)DynamicVars["Army"]).StringValue=ArmyInfo.Name(value);}}
+    protected override IEnumerable<DynamicVar> CanonicalVars=>[new StringVar("Army","士兵")];
     public override async Task AfterPlayerTurnStart(PlayerChoiceContext ctx,Player p){if(p!=Owner.Player)return;await ArmyPower.Gain(ctx,p,0,2);await V04.Convert(ctx,p,Amount,Kind);}
 }
 public sealed class KingsGracePower():ArtuPower("全凭君恩","本场苏丹牌0费、免代价、额外重放1次，期限与履行状态冻结。")
@@ -181,6 +186,7 @@ public sealed class RevolutionConceptPower():OncePerTurnPower("革命的构思",
 }
 public sealed class RevolutionNotePower():OncePerTurnPower("革命议程","字条拥有已解锁的所有议程强化。")
 {
+    protected override IEnumerable<MegaCrit.Sts2.Core.HoverTips.IHoverTip> ExtraHoverTips=>AgendaDetails.Tips(ArtuTerms.OwnerOf(this));
     public override async Task AfterCardPlayed(PlayerChoiceContext ctx,CardPlay play)
     {if(play.Player==Owner.Player&&(Util.State(play.Player)!.AgendaFlags&32)!=0&&play.Card is ArtuCard {Thought:true} and not NoteInBook&&First("thought")){await ArmyPower.Gain(ctx,play.Player,1,1,play.Card);await CardPileCmd.Draw(ctx,1,play.Player);}}
     public override async Task AfterPlayerTurnStart(PlayerChoiceContext ctx,Player p)

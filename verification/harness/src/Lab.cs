@@ -28,7 +28,7 @@ public static class Lab
     public static void Initialize()
     {
         var path=Path.Combine(Path.GetDirectoryName(OS.GetExecutablePath())!,"ArtuPromoTest.json");
-        if(File.Exists(path))
+        if(File.Exists(path)&&string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ARTU_SMOKE_OUTPUT")))
         {
             using var config=JsonDocument.Parse(File.ReadAllText(path));
             localScenario=config.RootElement.GetProperty("scenario").GetString();
@@ -63,11 +63,18 @@ public static class Lab
             ?? localReport ?? throw new InvalidOperationException("ARTU_AUTOPLAY_REPORT is required.");
         Directory.CreateDirectory(reportDirectory);
         await Task.Delay(1000);
+        if(localScenario=="third-batch")
+        {
+            _ = MegaCrit.Sts2.Core.Helpers.TaskHelper.RunSafely(ThirdBatchScenario.Run(reportDirectory));return;
+        }
         if(localScenario=="alpha-promo")
         {
             _ = MegaCrit.Sts2.Core.Helpers.TaskHelper.RunSafely(AlphaPromoScenario.Run(reportDirectory));return;
         }
         if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ARTU_V04_SCENARIO"))) {
+            if(Environment.GetEnvironmentVariable("ARTU_V04_SCENARIO")=="third-batch"){
+                _ = MegaCrit.Sts2.Core.Helpers.TaskHelper.RunSafely(ThirdBatchScenario.Run(reportDirectory));return;
+            }
             if(Environment.GetEnvironmentVariable("ARTU_V04_SCENARIO")=="evolution"){
                 _ = MegaCrit.Sts2.Core.Helpers.TaskHelper.RunSafely(EvolutionScenario.Run(reportDirectory));return;
             }

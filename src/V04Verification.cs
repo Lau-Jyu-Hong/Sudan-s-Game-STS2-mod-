@@ -17,7 +17,7 @@ public static class V04Verification
             var expected=new Type[]{typeof(KnowYourEnemy),typeof(RobPeterToPayPaul),typeof(CriminalDefense),typeof(SecretMessenger),typeof(MarchingDrum),typeof(CollectiveWisdom),typeof(ScribesManuscript),typeof(AtonementPrayer),typeof(AncientFaith),typeof(RebellionIntent),typeof(ArmyRegularization),typeof(RevolutionaryAcademy),typeof(AllByKingsGrace),typeof(SpiralWaltz),typeof(OpenThought),typeof(LifeScepter),typeof(ProfitFromCrime),typeof(BurnTheBoats),typeof(UndergroundPress),typeof(MoneyOpensDoors),typeof(RoyalConscription)};
             using(var f=new Fixture())
             {
-                var normal=V04.RewardCards(f.Player).ToArray();Check("ordinary rewards register 23/36/25=84",normal.Length==84&&normal.Count(c=>c.Rarity==CardRarity.Common)==23&&normal.Count(c=>c.Rarity==CardRarity.Uncommon)==36&&normal.Count(c=>c.Rarity==CardRarity.Rare)==25);
+                var normal=V04.RewardCards(f.Player).ToArray();Check("ordinary rewards register 23/36/26=85",normal.Length==85&&normal.Count(c=>c.Rarity==CardRarity.Common)==23&&normal.Count(c=>c.Rarity==CardRarity.Uncommon)==36&&normal.Count(c=>c.Rarity==CardRarity.Rare)==26);
                 foreach(var type in expected)
                 {var card=normal.Single(c=>c.GetType()==type);Check($"{card.Title} is a real registered reward",card.CanBeGeneratedInCombat&&card.CanBeGeneratedByModifiers&&card.Localization!.All(t=>!t.Item2.Contains("未确定")));
                 var mutable=f.Combat.CreateCard(card,f.Player);Check($"{type.Name} upgrade rule",mutable.IsUpgradable==(!card.Thought&&!card.Reading));if(mutable.IsUpgradable){CardCmd.Upgrade(mutable);Check($"{type.Name} upgrade applies",mutable.IsUpgraded);}}
@@ -69,7 +69,7 @@ public static class V04Verification
             foreach(int stacks in new[]{3,6,7,8,11})using(var f=new Fixture())
             {
                 f.Apply<CrimePower>(stacks);int hp=f.Player.Creature.CurrentHp;var crime=f.Player.Creature.GetPower<CrimePower>()!;
-                Check($"crime {stacks} opening draw -1 and natural energy condition",crime.ModifyHandDraw(f.Player,5)==4&&crime.ModifyEnergyGain(f.Player,3)==(stacks>=4?2:3));
+                Check($"crime {stacks} opening draw -1 and natural energy condition",crime.ModifyHandDraw(f.Player,5)==4&&crime.ModifyMaxEnergy(f.Player,3)==(stacks>=4?2:3)&&crime.ModifyEnergyGain(f.Player,3)==3);
                 f.Await(crime.AfterPlayerTurnStart(f.Context,f.Player));Check($"crime {stacks} never start-turn HP loss",f.Player.Creature.CurrentHp==hp);
                 var first=f.Card<Quickfoot>();f.Await(CardPileCmd.Add(first,PileType.Hand));f.Await(crime.AfterCardDrawnEarly(f.Context,first,true));Check($"crime {stacks} first drawn non-Sultan surcharge",first.EnergyCost.GetWithModifiers(CostModifiers.All)==first.EnergyCost.Canonical+(stacks>=5?1:0));
                 int before=f.Player.PlayerCombatState!.DrawPile.Cards.Count(c=>c is Dazed);f.Play(first);int after=f.Player.PlayerCombatState.DrawPile.Cards.Count(c=>c is Dazed);Check($"crime {stacks} first creates exact dazed count",after-before==(stacks>=6?1:0));

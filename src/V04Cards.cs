@@ -140,11 +140,12 @@ public sealed class RevolutionPlan():RewardCard(0,CardType.Skill,CardRarity.Anci
     public override IEnumerable<CardKeyword> CanonicalKeywords=>[CardKeyword.Retain];
     protected override Task OnPlay(PlayerChoiceContext ctx,CardPlay play)=>RevolutionEnding.Win(Owner);
 }
-public sealed class NoteInBook():RewardCard(0,CardType.Power,CardRarity.Ancient,TargetType.Self,"夹在书中的字条","[gold]读物　思潮[/gold]\n检查革命议程，获得全部已解锁强化。保留。")
+public sealed class NoteInBook():RewardCard(0,CardType.Power,CardRarity.Ancient,TargetType.Self,"夹在书中的字条","[gold]读物　思潮[/gold]\n启用已完成的革命议程强化。悬浮查看条件、进度与奖励；点击角色下方“议程”可查看完整清单。")
 {
+    protected override IEnumerable<MegaCrit.Sts2.Core.HoverTips.IHoverTip> ExtraHoverTips=>base.ExtraHoverTips.Concat(AgendaDetails.Tips(ArtuTerms.OwnerOf(this)));
     public override bool Reading=>true;public override bool Thought=>true;public override bool CanBeGeneratedInCombat=>false;public override bool CanBeGeneratedByModifiers=>false;
     public override IEnumerable<CardKeyword> CanonicalKeywords=>[CardKeyword.Retain];
-    protected override async Task OnPlay(PlayerChoiceContext ctx,CardPlay play){V04.Data(Owner).NoteActive=true;await AddPower<RevolutionNotePower>(ctx,1);await RevolutionAgenda.Refresh(Owner,ctx);if(!V04.Data(Owner).NoteShown){V04.Data(Owner).NoteShown=true;await AgendaUi.Show(Owner,Util.State(Owner)!.AgendaFlags,ctx);}}
+    protected override async Task OnPlay(PlayerChoiceContext ctx,CardPlay play){V04.Data(Owner).NoteActive=true;await AddPower<RevolutionNotePower>(ctx,1);await RevolutionAgenda.Refresh(Owner,ctx);}
 }
 public sealed class ScepterReplaceOption():OptionCard("替换代价","使选择的敌人获得再生，替换本次苏丹代价。");
 public sealed class ScepterDeclineOption():OptionCard("正常支付","不使用权杖，本回合仍可在之后使用一次替换。");

@@ -22,6 +22,7 @@ License: CC BY 3.0 — https://creativecommons.org/licenses/by/3.0/
 | 精兵 | `VeteranPower` | [centurion-helmet / Delapouite](https://game-icons.net/1x1/delapouite/centurion-helmet.html) |
 | 锐士 | `ElitePower` | [crossed-swords / Lorc](https://game-icons.net/1x1/lorc/crossed-swords.html) |
 | 全军出击 | `AllArmyPower` | [backup / Lorc](https://game-icons.net/1x1/lorc/backup.html) |
+| 军威如山 | `ArmyMightPower` | [backup / Lorc](https://game-icons.net/1x1/lorc/backup.html) |
 | 追忆过去的荣光 | `GloryPower` | [laurel-crown / Lorc](https://game-icons.net/1x1/lorc/laurel-crown.html) |
 | 训练兵队 | `TrainingPower` | [team-upgrade / Delapouite](https://game-icons.net/1x1/delapouite/team-upgrade.html) |
 | 强军战歌 | `WarSongPower` | [trumpet / Delapouite](https://game-icons.net/1x1/delapouite/trumpet.html) |

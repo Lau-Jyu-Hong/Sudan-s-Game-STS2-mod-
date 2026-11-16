@@ -35,6 +35,19 @@ public class WitchCardBox : CustomRelicModel
     [SavedProperty] public int DarkSecond {get;set;}
     [SavedProperty] public int AwakeSecond {get;set;}
     [SavedProperty] public int TreasuryRate {get;set;}
+    [SavedProperty] public int Crime {get;set;}
+    [SavedProperty] public int AgendaFlags {get;set;}
+    [SavedProperty] public int ReadingUses {get;set;}
+    [SavedProperty] public string ReadingNames {get;set;}="";
+    [SavedProperty] public int LeviesConverted {get;set;}
+    [SavedProperty] public int Devotion {get;set;}
+    [SavedProperty] public int Fanaticism {get;set;}
+    [SavedProperty] public int Treason {get;set;}
+    [SavedProperty] public bool ConceptGranted {get;set;}
+    [SavedProperty] public bool PlanGranted {get;set;}
+    [SavedProperty] public bool RevolutionWon {get;set;}
+    [SavedProperty] public bool ClearStreamsSeen {get;set;}
+    [SavedProperty] public bool NurserySeen {get;set;}
     private bool enforcing;
     public override List<(string,string)> Localization=>new RelicLoc("女术士的牌盒",
         "每场战斗开始时，从抽牌堆中选择一张苏丹牌加入手牌。休息处可将非黄金苏丹牌换成随机高一级苏丹牌。\n苏丹之怒：{Anger}；苏丹的嘲弄：{Mockery}。","皇命不曾远去。");
@@ -50,12 +63,40 @@ public class WitchCardBox : CustomRelicModel
             if(Owner.Creature.CurrentHp>cap)await CreatureCmd.SetCurrentHp(Owner.Creature,cap);
         }finally{enforcing=false;}
     }
+    public override async Task AfterCardPlayed(PlayerChoiceContext ctx,CardPlay play)
+    {
+        if(play.Player!=Owner)return;var d=V04.Data(Owner);
+        if(play.Card is ArtuCard card)
+        {
+            if(card.Reading&&card is not NoteInBook)
+            {ReadingUses++;var names=ReadingNames.Split(';',StringSplitOptions.RemoveEmptyEntries).ToHashSet();names.Add(card.Id.ToString());ReadingNames=string.Join(';',names.Order());}
+            if(card.Thought&&card is not NoteInBook)d.Thoughts.Add(card.Id);
+            if(card is ThirdThought)d.ThirdUsed.Add(card.GetType());
+            if(card is RegicidePlan)d.RegicideUsed=true;
+            if(card is RevolutionConcept)d.ConceptUsed=true;
+        }
+        if(play.Card is SultanCard s)d.Suits.Add(s.Suit);
+        await RevolutionAgenda.Refresh(Owner,ctx);
+        if(RevolutionAgenda.Active(Owner)&&d.ConceptUsed&&d.RegicideUsed&&!PlanGranted)
+        {PlanGranted=true;await CardPileCmd.Add(Owner.Creature.CombatState!.CreateCard<RevolutionPlan>(Owner),PileType.Hand);}
+    }
+    public override Task AfterPowerAmountChanged(PlayerChoiceContext ctx,PowerModel power,decimal amount,Creature? applier,CardModel? card)
+    {
+        if(power.Owner!=Owner.Creature)return Task.CompletedTask;
+        if(power is CrimePower)Crime=Math.Max(0,power.Amount);
+        return RevolutionAgenda.Refresh(Owner,ctx);
+    }
+    public override Task AfterCardChangedPiles(CardModel card,PileType oldPile,AbstractModel? by)
+        =>card.Owner==Owner&&(oldPile==PileType.Deck||card.Pile?.Type==PileType.Deck)?RevolutionAgenda.Refresh(Owner,new BlockingPlayerChoiceContext()):Task.CompletedTask;
+    public override Task AfterCombatEnd(CombatRoom room)
+    {Crime=Owner.Creature.GetPowerAmount<CrimePower>();return Task.CompletedTask;}
     public override Task AfterCurrentHpChanged(Creature creature,decimal delta)=>creature==Owner.Creature?EnforceHp():Task.CompletedTask;
     public override async Task BeforeCombatStart()
     {
         CostsPaid=0;GoldLost=0;Refund=0;Fear=0;Pure=0;Unclean=0;Submission=0;
         PureSecond=0;DarkSecond=0;AwakeSecond=0;TreasuryRate=0;
-        PaymentLedger.Reset(Owner);SultanUsage.Reset(Owner);
+        PaymentLedger.Reset(Owner);SultanUsage.Reset(Owner);V04.Reset(Owner);
+        if(Crime>0)await PowerCmd.Apply<CrimePower>(new ThrowingPlayerChoiceContext(),Owner.Creature,Crime,Owner.Creature,null);
         foreach(var card in Owner.Deck.Cards.OfType<SultanCard>())
         {card.UsedThisBattle=false;card.UsedThisTurn=false;card.FailedThisBattle=false;card.LastCountedTurn=0;}
         await EnforceHp();if(Owner.Creature.IsDead)return;
@@ -128,7 +169,7 @@ public class WitchCardBox : CustomRelicModel
         int turn=Owner.PlayerCombatState?.TurnNumber??1;
         foreach(var card in Owner.Deck.Cards.OfType<SultanCard>().Where(c=>c.Grade==SultanGrade.Gold).ToArray())
         {
-            if(card.LastCountedTurn==turn)continue;
+            if(V04.Data(Owner).Grace||card.LastCountedTurn==turn)continue;
             card.LastCountedTurn=turn;
             if(card.UsedThisTurn){card.TurnsSinceUse=0;card.UsedThisTurn=false;continue;}
             card.TurnsSinceUse++;
@@ -142,12 +183,14 @@ public class WitchCardBox : CustomRelicModel
         await TickGold(ctx);
         foreach(var card in Owner.Deck.Cards.OfType<SultanCard>().ToArray())
         {
+            if(V04.Data(Owner).Grace)continue;
             if(card.UsedThisBattle)card.BattlesRemaining=Rules.BattleDeadline(card.Grade);
             else if(!card.FailedThisBattle&&--card.BattlesRemaining<=0)await Expire(ctx,card);
             if(Owner.Creature.IsDead)return;
         }
         if(GoldLost>20&&Refund>0)await PlayerCmd.GainGold(Refund,Owner);
         if(TreasuryRate>0)await PlayerCmd.GainGold(TreasuryRate*SultanUsage.UsedKinds(Owner).Count,Owner);
+        await V04.Victory(Owner,ctx);
         await Thoughts.Resolve(Owner,this,ctx);
     }
     public async Task Expire(PlayerChoiceContext ctx,SultanCard card)
@@ -162,19 +205,19 @@ public class WitchCardBox : CustomRelicModel
             case SultanSuit.Conquest:
                 if(card.Grade==SultanGrade.Stone)WeakBattles=Math.Max(WeakBattles,3);
                 if(card.Grade==SultanGrade.Bronze)StrengthPenalty++;
-                // TODO v0.3: silver expiry remains unconfirmed. User requested preserving ambiguous rules.
+                // Confirmed silver expiry: three subsequent battles deny Dexterity.
                 if(card.Grade==SultanGrade.Silver)StrengthLockBattles=Math.Max(StrengthLockBattles,3);
                 if(card.Grade==SultanGrade.Gold)StatsLocked=true;break;
             case SultanSuit.Luxury:
                 if(card.Grade==SultanGrade.Stone)ShopPurchases++;
                 if(card.Grade==SultanGrade.Bronze)ShopVisits=Math.Max(ShopVisits,1);
-                // TODO v0.3: retain the previously documented prototype, not a newly confirmed design.
+                // Confirmed silver luxury expiry: next shop forbids purchases.
                 if(card.Grade==SultanGrade.Silver)NoBuyingShops=Math.Max(NoBuyingShops,1);
                 if(card.Grade==SultanGrade.Gold)GoldLocked=true;break;
             case SultanSuit.Lust:
                 if(card.Grade==SultanGrade.Stone)VulnerableBattles=Math.Max(VulnerableBattles,3);
                 if(card.Grade==SultanGrade.Bronze)BoulderBattles=Math.Max(BoulderBattles,3);
-                // TODO v0.3: retain the previously documented prototype pending its final rule.
+                // Confirmed silver lust expiry: three subsequent battles mirror healing.
                 if(card.Grade==SultanGrade.Silver)MirrorHealBattles=Math.Max(MirrorHealBattles,3);
                 if(card.Grade==SultanGrade.Gold)HealingLocked=true;break;
         }

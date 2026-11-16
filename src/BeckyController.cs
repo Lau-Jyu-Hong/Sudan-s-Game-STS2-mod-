@@ -32,7 +32,8 @@ public static class BeckyController
             },()=>!player.Creature.IsDead&&!CombatManager.Instance.IsOverOrEnding);
         }
         finally{Current.Value=previous;Running.Remove(player);}
-        if(!player.Creature.IsDead&&CombatManager.Instance.IsInProgress)PlayerCmd.EndTurn(player,canBackOut:false);
+        if(!player.Creature.IsDead&&CombatManager.Instance.IsInProgress&&V04.Data(player).BeckyEndQueuedTurn!=player.PlayerCombatState!.TurnNumber)
+        {V04.Data(player).BeckyEndQueuedTurn=player.PlayerCombatState.TurnNumber;PlayerCmd.EndTurn(player,canBackOut:false);}
     }
     public static async Task Scan(Func<int> count,Func<int,Task> playAt,Func<bool>? keepGoing=null)
     {

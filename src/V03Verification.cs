@@ -18,8 +18,8 @@ public static class V03Verification
         try
         {
             var pool=ModelDb.CardPool<ArtuCardPool>().AllCards.ToArray();
-            Check("v03 normal pool: 20 common, 28 uncommon, 11 rare",pool.Count(c=>c.Rarity==CardRarity.Common)==20&&pool.Count(c=>c.Rarity==CardRarity.Uncommon)==28&&pool.Count(c=>c.Rarity==CardRarity.Rare)==11);
-            Check("v03 unfinished tier-three/final thoughts excluded from normal rewards",pool.OfType<UnfinishedThought>().All(c=>c.Rarity is CardRarity.Event or CardRarity.Ancient&&!c.CanBeGeneratedInCombat&&!c.CanBeGeneratedByModifiers));
+            Check("v04 normal pool: 20 common, 35 uncommon, 25 rare",pool.Count(c=>c.Rarity==CardRarity.Common)==20&&pool.Count(c=>c.Rarity==CardRarity.Uncommon)==35&&pool.Count(c=>c.Rarity==CardRarity.Rare)==25);
+            Check("v04 final thoughts excluded from normal rewards",pool.OfType<FinalThought>().All(c=>c.Rarity is CardRarity.Event or CardRarity.Ancient&&!c.CanBeGeneratedInCombat&&!c.CanBeGeneratedByModifiers));
             Check("v03 three second thoughts are 1-energy uncommon powers without upgrades",new CardModel[]{ModelDb.Card<TouchPurity>(),ModelDb.Card<GlimpseDarkness>(),ModelDb.Card<FreedomFromFear>()}.All(c=>c.Type==CardType.Power&&c.Rarity==CardRarity.Uncommon&&c.EnergyCost.Canonical==1&&c.MaxUpgradeLevel==0));
             Check("v03 all Sultan cards remain Curse outside use predicates",pool.OfType<SultanCard>().All(c=>c.Type==CardType.Curse&&!c.IsRemovable&&!c.IsTransformable&&!c.IsUpgradable)&&!pool.Where(c=>c.Type==CardType.Attack||c.Type==CardType.Skill).OfType<SultanCard>().Any());
             Check("v03 native usage/history comparison patches found",NativeSultanUsageTypes.PatchedMethods>=20);
@@ -194,7 +194,7 @@ public static class V03Verification
             {
                 f.State.PureSecond=3;f.AddDeck<TouchPurity>();f.AddDeck<TouchPurity>();
                 f.Await(Thoughts.ResolveSecond(f.Player,f.State,f.Context));
-                Check("v03 purity evolution removes all originals and grants explicit unfinished next tier",!f.Player.Deck.Cards.Any(c=>c is TouchPurity)&&f.Player.Deck.Cards.Count(c=>c is AtonementPrayer)==1);
+                Check("v03 purity evolution removes all originals and grants usable next tier",!f.Player.Deck.Cards.Any(c=>c is TouchPurity)&&f.Player.Deck.Cards.Count(c=>c is AtonementPrayer)==1);
             }
             using(var f=new Fixture())
             {

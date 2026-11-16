@@ -9,6 +9,8 @@ public static class SultanUsage
 {
     sealed class Data {public readonly HashSet<ModelId> Used=[];public readonly List<(int turn,CardPlay play)> Plays=[];}
     static readonly ConditionalWeakTable<Player,Data> DataByPlayer=new();
+    public static bool ManualSultanUsedThisTurn(Player p)=>DataByPlayer.GetOrCreateValue(p).Plays.Any(x=>x.turn==p.PlayerCombatState?.TurnNumber&&x.play.Card is SultanCard&&!x.play.IsAutoPlay);
+    public static int NonSultanThisTurn(Player p)=>DataByPlayer.GetOrCreateValue(p).Plays.Count(x=>x.turn==p.PlayerCombatState?.TurnNumber&&x.play.Card is not SultanCard);
     public static void Reset(Player player)=>DataByPlayer.Remove(player);
     public static IReadOnlySet<ModelId> UsedKinds(Player player)=>DataByPlayer.GetOrCreateValue(player).Used;
     public static bool SultanUsedThisTurn(Player player)=>DataByPlayer.GetOrCreateValue(player).Plays.Any(p=>p.turn==player.PlayerCombatState?.TurnNumber&&p.play.Card is SultanCard);
@@ -78,7 +80,7 @@ static class SultanTargetPayment
     static void Postfix(CardModel __instance,Creature? target,ref bool __result)
     {
         if(!__result||__instance is not SultanCard card||BeckyController.Active(card.Owner)||Util.Tyranny(card.Owner)||
-            card.Owner.Creature.HasPower<PassPower>()||SultanPayments.HasReplacement(card))return;
+            card.Owner.Creature.HasPower<PassPower>()||SultanPayments.HasReplacement(card)||V04Replay.Free(card)||card.Owner.Creature.GetPower<LifeScepterPower>()?.Available==true)return;
         __result=card.CanPayTarget(target);
     }
 }

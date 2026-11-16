@@ -17,7 +17,7 @@ public abstract class SultanCard(SultanSuit suit,SultanGrade grade) : ArtuCard(1
     protected override IEnumerable<DynamicVar> CanonicalVars=>Suit==SultanSuit.Slaughter
         ?[new DamageVar(Rules.SlaughterDamage(Grade),Grade>=SultanGrade.Silver?ValueProp.Move|ValueProp.Unblockable:ValueProp.Move)]
         :[];
-    protected override bool IsPlayable => BeckyController.Active(Owner)||Util.Tyranny(Owner)||Owner.Creature.HasPower<PassPower>()||SultanPayments.HasReplacement(this)||CanPayAny();
+    protected override bool IsPlayable => V04Replay.Free(this)||Owner.Creature.GetPower<LifeScepterPower>()?.Available==true||Util.Tyranny(Owner)||Owner.Creature.HasPower<PassPower>()||SultanPayments.HasReplacement(this)||CanPayAny();
     protected override void AddExtraArgsToDescription(LocString loc)
     {
         loc.Add("Battles",Original.BattlesRemaining);
@@ -71,7 +71,8 @@ public abstract class SultanCard(SultanSuit suit,SultanGrade grade) : ArtuCard(1
         bool actualUse=play.Card==this;
         bool replacement=actualUse&&SultanPayments.ConsumeReplacement(this);
         var pass=actualUse?Owner.Creature.GetPower<PassPower>():null;
-        if(BeckyController.Active(Owner))paid=true;
+        bool waived=V04Replay.Free(this,play);
+        if(waived)paid=true;
         else if(pass!=null){await PowerCmd.Decrement(pass);paid=true;}
         else if(replacement){await PowerCmd.Apply<CrimePower>(ctx,Owner.Creature,1,Owner.Creature,play.Card);await PaymentLedger.Record(ctx,Owner);paid=true;}
         else
@@ -80,6 +81,8 @@ public abstract class SultanCard(SultanSuit suit,SultanGrade grade) : ArtuCard(1
             int count=doubleCost?2:1;
             for(int i=0;i<count;i++)
             {
+                if(Owner.Creature.GetPower<LifeScepterPower>() is {} scepter&&await scepter.TryReplace(ctx))
+                {paid=true;await PaymentLedger.Record(ctx,Owner);continue;}
                 // A second zero-block iteration under DoubleCost is deliberately allowed.
                 if(i>0&&Suit==SultanSuit.Conquest&&Grade==SultanGrade.Stone&&Owner.Creature.Block==0)break;
                 if(!CanPayTarget(target))
@@ -124,9 +127,12 @@ public abstract class SultanCard(SultanSuit suit,SultanGrade grade) : ArtuCard(1
         if(!paid||Owner.Creature.IsDead)return;
         if(actualUse)
         {
-            var original=Original;original.BattlesRemaining=Rules.BattleDeadline(Grade);original.TurnsSinceUse=0;
-            original.UsedThisBattle=true;original.UsedThisTurn=true;
+            var original=Original;
+            if(V04.Data(Owner).Grace)V04.Data(Owner).GraceUsed.Add(original);
+            else {original.BattlesRemaining=Rules.BattleDeadline(Grade);original.TurnsSinceUse=0;original.UsedThisBattle=true;original.UsedThisTurn=true;}
         }
+        if(waived&&Suit==SultanSuit.Luxury&&Grade==SultanGrade.Bronze)
+            sacrificed=await Select(ctx,PileType.Hand.GetPile(Owner).Cards.Where(c=>c is SultanCard&&c!=this));
         switch(Suit)
         {
             case SultanSuit.Slaughter:
@@ -157,7 +163,7 @@ public abstract class SultanCard(SultanSuit suit,SultanGrade grade) : ArtuCard(1
                 if(Grade==SultanGrade.Bronze&&sacrificed is SultanCard chosen)
                 {
                     // Re-enter through game's autoplay pipeline so replay hooks and costs execute.
-                    chosen.ExhaustOnNextPlay=true;
+                    chosen.ExhaustOnNextPlay=!waived;
                     using(SultanPayments.AddReplay(chosen))await CardCmd.AutoPlay(ctx,chosen,chosen.TargetType==TargetType.AnyEnemy?Util.RandomEnemy(Owner):null);
                 }
                 if(Grade==SultanGrade.Silver)await AddPower<FreeCardsPower>(ctx,3);

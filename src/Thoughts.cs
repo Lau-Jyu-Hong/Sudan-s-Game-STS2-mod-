@@ -17,8 +17,6 @@ public sealed class BowToSultan():ThoughtCard("俯首称臣","获得1层臣服�
 {
     protected override Task OnPlay(PlayerChoiceContext ctx,CardPlay play){if(Util.State(Owner) is {} s)s.Submission++;return AddPower<SubmissionPower>(ctx,1);}
 }
-public abstract class UnfinishedThought(string title):ThoughtCard(title,"高阶思潮，原聊天尚未确定战斗效果；保留为路线凭证。",CardRarity.Event)
-{public override bool CanBeGeneratedInCombat=>false;public override bool CanBeGeneratedByModifiers=>false;}
 // The user clarified the discount lasts the current turn during this update.
 public sealed class TouchPurity():ThoughtCard("触碰洁净","获得1净悟。每回合首张抽到的牌费用-1，仅持续当前回合；战斗效果不随净悟层数叠加。",CardRarity.Uncommon)
 {
@@ -31,20 +29,6 @@ public sealed class GlimpseDarkness():ThoughtCard("窥视黑暗","获得1秘悟�
 public sealed class FreedomFromFear():ThoughtCard("免于恐惧的自由","获得1觉醒。每回合首次使用非苏丹牌获得1士兵；若此前本回合未使用苏丹牌，再抽1张。战斗效果不随觉醒层数叠加。",CardRarity.Uncommon)
 {
     protected override Task OnPlay(PlayerChoiceContext ctx,CardPlay play){if(Util.State(Owner) is {} s)s.AwakeSecond++;return AddPower<AwakeningPower>(ctx,1);}
-}
-public sealed class AtonementPrayer():UnfinishedThought("赎罪祈愿");
-public sealed class AncientFaith():UnfinishedThought("古老的信仰");
-public sealed class RebellionIntent():UnfinishedThought("谋反的意图");
-public sealed class PerfectWorld():UnfinishedThought("完美世界"){public override CardRarity Rarity=>CardRarity.Ancient;}
-public sealed class NewWorld():UnfinishedThought("新世界"){public override CardRarity Rarity=>CardRarity.Ancient;}
-public sealed class RevolutionConcept():UnfinishedThought("革命的构思");
-public sealed class RegicidePlan():UnfinishedThought("弑君的计划"){public override CardRarity Rarity=>CardRarity.Ancient;}
-public sealed class RevolutionPlan():UnfinishedThought("革命的计划");
-public sealed class NoteInBook():RewardCard(0,CardType.Skill,CardRarity.Ancient,TargetType.Self,"夹在书中的字条","[gold]读物　思潮[/gold]\n打开革命议程，检查并领取已满足目标的成果。保留。消耗。")
-{
-    public override bool Reading=>true;public override bool Thought=>true;
-    public override IEnumerable<CardKeyword> CanonicalKeywords=>[CardKeyword.Retain,CardKeyword.Exhaust];
-    protected override Task OnPlay(PlayerChoiceContext ctx,CardPlay play)=>RevolutionAgenda.Check(Owner,ctx);
 }
 public static class Thoughts
 {
@@ -116,39 +100,6 @@ public static class Thoughts
         newCard.BattlesRemaining=card.BattlesRemaining;newCard.TurnsSinceUse=card.TurnsSinceUse;
         await Util.RemoveSultan(card);CardCmd.PreviewCardPileAdd(await CardPileCmd.Add(newCard,PileType.Deck));
     }
-}
-public static class RevolutionAgenda
-{
-    public static bool Active(Player p)=>p.Deck.Cards.Any(c=>c is NoteInBook);
-    public static async Task Check(Player p,PlayerChoiceContext ctx)
-    {
-        var state=Util.State(p);if(state==null||!Active(p))return;
-        // Numerical goals were left open in the conversation. These are explicit prototype defaults.
-        if(state.AgendaStage==0&&p.Deck.Cards.OfType<SultanCard>().Count()<=4){state.AgendaStage=1;await Util.AddToDeck(p,ModelDb.Card<RecruitTroops>());}
-        if(state.AgendaStage==1&&p.Creature.GetPowerAmount<CrimePower>()==0&&ArmyPower.All(p).Sum(a=>a.Amount)>=6)state.AgendaStage=2;
-        if(state.AgendaStage==2&&new[]{p.Creature.GetPowerAmount<SoldierPower>(),p.Creature.GetPowerAmount<VeteranPower>(),p.Creature.GetPowerAmount<ElitePower>()}.All(n=>n>=1))
-        {state.AgendaStage=3;await Util.AddToDeck(p,ModelDb.Card<RevolutionConcept>());}
-        if(state.AgendaStage>=2)await CreatureCmd.GainBlock(p.Creature,8,ValueProp.Unpowered,null);
-        if(state.AgendaStage>=3)await ArmyPower.Gain(ctx,p,p.RunState.Rng.CombatCardGeneration.NextInt(1,4),1);
-        if(p.Deck.Cards.Any(c=>c is RevolutionConcept)&&p.Deck.Cards.Any(c=>c is RegicidePlan))
-        {
-            await Thoughts.RemoveSame(p,ModelDb.Card<RevolutionConcept>());await Thoughts.RemoveSame(p,ModelDb.Card<RegicidePlan>());
-            await Util.AddToDeck(p,ModelDb.Card<RevolutionPlan>());state.AgendaStage=4;
-        }
-        await AgendaUi.Show(p,state.AgendaStage,ctx);
-    }
-}
-public static class AgendaUi
-{
-    public static Task Show(Player p,int stage,PlayerChoiceContext ctx)
-        =>Util.Choose(p,[new AgendaStatus(stage)],false,ctx);
-}
-public sealed class AgendaStatus:OptionCard
-{
-    public AgendaStatus():base("革命议程","查看革命进度。"){}
-    public AgendaStatus(int stage):this(){((StringVar)DynamicVars["Status"]).StringValue="阶段："+new[]{"反抗","组织","现实的载体","革命的构思","革命的计划"}[Math.Clamp(stage,0,4)]+"。";}
-    protected override IEnumerable<DynamicVar> CanonicalVars=>[new StringVar("Status")];
-    public override List<(string,string)> Localization=>new CardLoc("革命议程","{Status}\n反抗：苏丹牌≤4；组织：罪证0且总兵力≥6；载体：士兵、精兵、锐士各≥1。构思＋弑君计划→革命的计划。数值为开发暂定。");
 }
 public sealed class PureThoughtPower():ArtuPower("洁念","战后获得{Amount}张纯洁的思想；达到3层则形成触碰洁净。");
 public sealed class UncleanThoughtPower():ArtuPower("邪念","战后获得{Amount}张不洁的思绪；达到3层则形成窥视黑暗。");

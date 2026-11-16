@@ -130,9 +130,16 @@ public sealed class Leaderless : CustomEventModel
         options.Add(EventText.Option(this,"ARTU_LEADER_THOUGHT","聆听众声","随机获得一种普通思潮。",async ()=>{
             await Util.AddToDeck(p,Rng.NextItem(new CardModel[]{ModelDb.Card<PureThought>(),ModelDb.Card<UncleanThought>(),ModelDb.Card<FearOfSultan>()})!);
             EventText.Finish(this,"ARTU_LEADER_THOUGHT_DONE","声音汇在一起，终于成为一种你无法忽视的想法。");}));
-        var groups=p.Deck.Cards.Where(c=>c is PureThought or UncleanThought or FearOfSultan or BowToSultan or TouchPurity or GlimpseDarkness or FreedomFromFear).GroupBy(c=>c.Id).Where(g=>g.Count()>=3).ToList();
+        var groups=p.Deck.Cards.Where(c=>c is PureThought or UncleanThought or FearOfSultan or BowToSultan or TouchPurity or GlimpseDarkness or FreedomFromFear or ThirdThought).GroupBy(c=>c.Id).Where(g=>g.Count()>=3).ToList();
         if(groups.Count>0)options.Add(EventText.Option(this,"ARTU_LEADER_MERGE","汇聚思潮","选择三张同名思潮，立即触发三层成果。",async ()=>{
             var chosen=await Util.Choose(p,groups.Select(g=>g.First()));var state=Util.State(p);if(chosen==null||state==null)return;
+            if(chosen is ThirdThought)
+            {
+                if(chosen is AtonementPrayer){state.Devotion=3;await V04.Evolve<AtonementPrayer,PerfectWorld>(p);}
+                if(chosen is AncientFaith){state.Fanaticism=3;await V04.Evolve<AncientFaith,NewWorld>(p);}
+                if(chosen is RebellionIntent){state.Treason=3;await V04.Evolve<RebellionIntent,RegicidePlan>(p);}
+                EventText.Finish(this,"ARTU_LEADER_MERGE_DONE","长桌旁，新的思想终于成为共同的计划。");return;
+            }
             state.Pure=chosen is PureThought?3:0;state.Unclean=chosen is UncleanThought?3:0;state.Fear=chosen is FearOfSultan?3:0;state.Submission=chosen is BowToSultan?3:0;state.CostsPaid=4;
             state.PureSecond=chosen is TouchPurity?3:0;state.DarkSecond=chosen is GlimpseDarkness?3:0;state.AwakeSecond=chosen is FreedomFromFear?3:0;
             await Thoughts.Resolve(p,state,new ThrowingPlayerChoiceContext());state.Pure=state.Unclean=state.Fear=state.Submission=0;
@@ -147,18 +154,18 @@ public static class RelicSelection
     public static async Task<RelicModel?> Choose(Player p,List<RelicModel> relics)
     {
         if(relics.Count==0)return null;
-        var choices=relics.Select(r=>(CardModel)new RelicChoice(r)).ToList();
+        var choices=relics.Select(r=>(CardModel)RelicChoice.Create(r)).ToList();
         var selected=await Util.Choose(p,choices);
         return selected is RelicChoice choice?choice.Relic:null;
     }
 }
 public sealed class RelicChoice:OptionCard
 {
-    public RelicModel Relic {get;}
+    public RelicModel Relic {get;private set;}
     public override string Title=>Relic?.Title.GetFormattedText()??"选择遗物";
     protected override IEnumerable<DynamicVar> CanonicalVars=>[new StringVar("Name"),new StringVar("Text")];
     public override List<(string,string)> Localization=>new CardLoc("选择遗物","{Name}\n{Text}");
     public RelicChoice():base("遗物","选择遗物。"){Relic=null!;}
-    public RelicChoice(RelicModel relic):base(relic.Title.GetFormattedText(),relic.DynamicDescription.GetFormattedText())
-    {Relic=relic;((StringVar)DynamicVars["Name"]).StringValue=relic.Title.GetFormattedText();((StringVar)DynamicVars["Text"]).StringValue=relic.DynamicDescription.GetFormattedText();}
+    public static RelicChoice Create(RelicModel relic)
+    {var choice=(RelicChoice)ModelDb.Card<RelicChoice>().ToMutable();choice.Relic=relic;((StringVar)choice.DynamicVars["Name"]).StringValue=relic.Title.GetFormattedText();((StringVar)choice.DynamicVars["Text"]).StringValue=relic.DynamicDescription.GetFormattedText();return choice;}
 }

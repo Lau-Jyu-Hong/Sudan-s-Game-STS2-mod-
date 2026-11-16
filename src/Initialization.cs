@@ -14,6 +14,9 @@ public static class RegisterArtuUi
         selection["ARTU_SULTAN_TO_HAND"]="选择一张苏丹牌加入手牌。";
         var cards=(Dictionary<string,string>)AccessTools.Field(typeof(LocTable),"_translations").GetValue(LocManager.Instance.GetTable("cards"))!;
         foreach(var model in ModelDb.All.OfType<ArtuCard>())cards[model.Id.Entry+".selectionScreenPrompt"]="选择卡牌。";
+        var badges=(Dictionary<string,string>)AccessTools.Field(typeof(LocTable),"_translations").GetValue(LocManager.Instance.GetTable("badges"))!;
+        badges["ARTUMOD_REVOLUTION_SUCCESS.title"]="革命成功";
+        badges["ARTUMOD_REVOLUTION_SUCCESS.description"]="通过革命的计划赢得本局游戏。";
         EventText.Inject();
         var testOutput=System.Environment.GetEnvironmentVariable("ARTU_SMOKE_OUTPUT");
         if(!string.IsNullOrWhiteSpace(testOutput))SmokeTests.Run(testOutput);

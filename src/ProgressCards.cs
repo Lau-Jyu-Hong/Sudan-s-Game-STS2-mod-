@@ -55,8 +55,7 @@ public sealed class FieldReorganization():RewardCard(1,CardType.Skill,CardRarity
     protected override async Task OnPlay(PlayerChoiceContext ctx,CardPlay play)
     {
         if(Owner.Creature.GetPower<LevyPower>() is not {} levy)return;
-        int n=Math.Min(levy.Amount,DynamicVars["Troops"].IntValue);await ArmyPower.Consume(ctx,levy,n,play.Card,countAsConsumption:false);
-        for(int i=0;i<n;i++)await ArmyPower.Gain(ctx,Owner,ArmyPower.RandomAdvanced(Owner),1,play.Card);
+        int n=await V04.Convert(ctx,Owner,DynamicVars["Troops"].IntValue,null,play.Card);
         await CreatureCmd.GainBlock(Owner.Creature,n*3,ValueProp.Move,play);
     }
     protected override void OnUpgrade()=>DynamicVars["Troops"].UpgradeValueBy(2);

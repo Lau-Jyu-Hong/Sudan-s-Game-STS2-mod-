@@ -15,7 +15,7 @@ public sealed class PassPower():ArtuPower("御用通行","本回合下一张苏�
 public sealed class DoubleCostPower():ArtuPower("色厉内茬","苏丹牌0费，但每次效果的代价处理两次。");
 public sealed class FreeCardsPower():ArtuPower("白银奢靡","接下来{Amount}张非苏丹牌0费。")
 {
-    // v0.3 leaves cross-turn duration unresolved. Preserve the existing three-use behavior.
+    // Confirmed: the three remaining uses persist across turns.
     public override bool TryModifyEnergyCostInCombat(CardModel card,decimal original,out decimal modified)
     {modified=original;if(card.Owner!=Owner.Player||card is SultanCard)return false;modified=0;return true;}
     public override async Task AfterCardPlayed(PlayerChoiceContext ctx,CardPlay play)
@@ -162,18 +162,28 @@ public sealed class TrainingPower():ArtuPower("训练兵队","回合开始时，
 {
     public override async Task AfterPlayerTurnStart(PlayerChoiceContext ctx,Player p)
     {if(p!=Owner.Player)return;var levy=Owner.GetPower<LevyPower>();if(levy==null)return;int n=Math.Min(Amount,levy.Amount);
-    await PowerCmd.ModifyAmount(ctx,levy,-n,Owner,null);for(int i=0;i<n;i++)await ArmyPower.Gain(ctx,p,p.RunState.Rng.CombatCardGeneration.NextInt(1,4),1);}
+    await V04.Convert(ctx,p,n,null);}
 }
 public sealed class WarSongPower():ArtuPower("强军战歌","每回合开始时，获得{Amount}精兵。")
 {
     public override Task AfterPlayerTurnStart(PlayerChoiceContext ctx,Player p)=>p==Owner.Player?ArmyPower.Gain(ctx,p,2,Amount):Task.CompletedTask;
 }
-public sealed class CrimePower():ArtuPower("罪证","1层：卡牌伤害-1；2层：卡牌格挡-1；3层：每回合失去1生命；4层：每回合少1能量。",PowerType.Debuff)
+public sealed class CrimePower():ArtuPower("罪证","1：卡牌伤害−1；2：卡牌格挡−1；3：开局抽牌−1；4：自然能量−1；5：首张非苏丹牌+1费；6：首张非苏丹牌后1晕眩；7：第4张及以后非苏丹牌额外随机弃1；8：每张非苏丹牌后1晕眩（替代第6级）。",PowerType.Debuff)
 {
     public override decimal ModifyDamageAdditive(Creature? target,decimal amount,ValueProp props,Creature? dealer,CardModel? card,CardPlay? play)=>dealer==Owner&&card!=null&&!props.HasFlag(ValueProp.Unpowered)&&Amount>=1?-1:0;
     public override decimal ModifyBlockAdditive(Creature target,decimal amount,ValueProp props,CardModel? card,CardPlay? play)=>target==Owner&&card!=null&&Amount>=2?-1:0;
-    public override async Task AfterPlayerTurnStart(PlayerChoiceContext ctx,Player p)
-    {if(p!=Owner.Player)return;if(Amount>=3)await Util.LoseHp(ctx,p,1);if(Amount>=4)await PlayerCmd.LoseEnergy(1,p);}
+    public override decimal ModifyHandDraw(Player p,decimal count)=>p==Owner.Player&&Amount>=3?count-1:count;
+    public override decimal ModifyEnergyGain(Player p,decimal amount)=>p==Owner.Player&&Amount>=4?amount-1:amount;
+    public override bool TryModifyEnergyCostInCombat(CardModel card,decimal original,out decimal modified)
+    {modified=original;if(Amount<5||card.Owner!=Owner.Player||card is SultanCard||card.EnergyCost.CostsX||original<0||SultanUsage.NonSultanThisTurn(card.Owner)>0)return false;modified=original+1;return true;}
+    public override async Task AfterCardPlayed(PlayerChoiceContext ctx,CardPlay play)
+    {
+        if(play.Player!=Owner.Player||play.Card is SultanCard)return;
+        int count=SultanUsage.NonSultanThisTurn(play.Player);
+        if(Amount>=8||Amount>=6&&count==1)await CardPileCmd.Add(play.Player.Creature.CombatState!.CreateCard<Dazed>(play.Player),PileType.Draw,CardPilePosition.Random);
+        if(Amount>=7&&count>=4){var hand=play.Player.PlayerCombatState!.Hand.Cards.Where(c=>c!=play.Card).ToArray();var card=play.Player.RunState.Rng.CombatCardGeneration.NextItem(hand);if(card!=null)await CardCmd.Discard(ctx,card);}
+    }
+    public override Task AfterRemoved(Creature oldOwner){if(oldOwner.Player is {} p&&Util.State(p) is {} s)s.Crime=0;return Task.CompletedTask;}
 }
 public sealed class TeaPower():ArtuPower("妻子的茶会","本回合每使用一张牌，获得{Amount}格挡。")
 {

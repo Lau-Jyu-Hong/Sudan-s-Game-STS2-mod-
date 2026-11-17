@@ -128,6 +128,12 @@ Icons made by **Lorc** and **Delapouite**. Available on https://game-icons.net.
 # v0.4.9-alpha 美术更新（2026-11-17）
 
 - `assets/art-preview/`：OpenAI GPT Image 2（Codex 内置绘图）生成的阿尔图头像和选角图、苏丹牌母图、女术士的牌盒、群龙无首、地图和能量徽记、两个军队状态图标。黄金杀戮全卡背景以已确认的横图为参考扩画。运行图经裁切、缩放后由 `tools/build_art_preview.py` 打包。
+- `assets/combat-visuals/artu_merchant.png`：同一绘图流程生成的商店购物站姿，手持钱袋与卷轴，不复用战斗构图。`assets/combat-visuals/artu_rig/` 是战斗立绘的五层切图，待机仍由这些切图做轻微呼吸。
+- `assets/combat-visuals/artu_poses/`：同一绘图流程生成的衔接立绘。攻击分蓄力、挥出、收势，三帧都与待机同一朝向，挥出不留胡须。施法分半举和举卷，另有受击、跪倒和伏身。跪倒与伏身不留胡须。这些动作播放时整张换画。
+- `assets/card-ui/artu_card_frame.png`：同一绘图流程生成的金边书板卡框。只替换阿尔图普通、罕见、稀有牌的外框；插图窗口和文字底板按游戏原卡框的位置留出，稀有度边、标题横幅和费用仍用游戏自己的。苏丹牌和先古牌不用这张框。
+- `assets/card-ui/portraits/`：同一绘图流程生成的十六张插图，裁成 250×190 放进插图窗。对应调兵遣将、御用通行、金币弹弓、上吧铁头、整兵待战、思潮翻涌、忠犬护主、快脚小圆、妻子的茶会、小狗与月亮之书、招兵买马、罪犯的投奔、操练、奉诏出征、纯洁的思想、不洁的思绪。人物和物件按《苏丹的游戏》原设立绘。不带卡框、标题和费用。苏丹牌全卡图未改。
+- `assets/combat-visuals/artu_rest_site.png`：同一绘图流程生成的篝火坐姿，只画读卷轴的人，不另画木桩。左侧座位朝向火堆；右侧座位沿用游戏原有的水平翻转。
+- `assets/combat-visuals/enemies/`：同一绘图流程生成的王冠骑士、军阀、佣兵队长攻击与施法立绘，以及王室护卫、封锁、征调、征募四张技能演出。攻击朝画面左侧。扩军与征募共用征募演出。
 - 安装包中的 `allarmypower.tres` 与 `armymightpower.tres` 使用新生成的三矛与红旗。Game-icons.net 的 backup 登记仍对应基础资源包与历史版本，其余临时状态图标的署名和许可不变。
 - 不重新分发用来查看游戏显示效果的原版截图，不把参考图计作 Mod 新增资源。
 

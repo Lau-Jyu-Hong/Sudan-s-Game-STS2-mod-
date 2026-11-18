@@ -22,7 +22,7 @@ v0.4.1规格、机制验证及安装信息见 `verification/v0.4.1防御补充�
 
 ## 在其他电脑安装
 
-可安装包：[v0.4.9-alpha-install](https://github.com/Lau-Jyu-Hong/Sudan-s-Game-STS2-mod-/releases/tag/v0.4.9-alpha-install) 的 `ArtuMod-v0.4.9-alpha-install.zip`。关闭游戏，将压缩包中的 **ArtuMod整个文件夹** 放进游戏的 `mods` 目录，最终应为：
+可安装包：[v0.4.9-alpha-cardart](https://github.com/Lau-Jyu-Hong/Sudan-s-Game-STS2-mod-/releases/tag/v0.4.9-alpha-cardart) 的 `ArtuMod-v0.4.9-alpha-cardart.zip`。关闭游戏，将压缩包中的 **ArtuMod整个文件夹** 放进游戏的 `mods` 目录，最终应为：
 
 ```
 Slay the Spire 2/mods/ArtuMod/ArtuMod.dll

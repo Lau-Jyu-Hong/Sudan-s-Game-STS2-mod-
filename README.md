@@ -16,7 +16,7 @@
 .\Build.ps1 -GameDir '<游戏安装目录>' -BaseLibPath '<BaseLib.dll 完整路径>'
 ```
 
-脚本生成 `package/ArtuMod/ArtuMod.dll`，不生成资源包。可直接安装的六个文件在 [v0.4.9-alpha-install](https://github.com/Lau-Jyu-Hong/Sudan-s-Game-STS2-mod-/releases/tag/v0.4.9-alpha-install) 的 `ArtuMod-v0.4.9-alpha-install.zip`。关闭游戏后，把压缩包里的 `ArtuMod` 文件夹放进游戏的 `mods` 目录。`ArtuMod.pck` 只在这个 Release 附件里。仓库不含游戏或 BaseLib。若编译试玩桥，请显式传入 `-p:Sts2Dir=<游戏安装目录>`，只编译时加 `-p:SkipModCopy=true`。
+脚本生成 `package/ArtuMod/ArtuMod.dll`，不生成资源包。可直接安装的六个文件在 [v0.4.9-alpha-cardart](https://github.com/Lau-Jyu-Hong/Sudan-s-Game-STS2-mod-/releases/tag/v0.4.9-alpha-cardart) 的 `ArtuMod-v0.4.9-alpha-cardart.zip`。关闭游戏后，把压缩包里的 `ArtuMod` 文件夹放进游戏的 `mods` 目录。`ArtuMod.pck` 只在这个 Release 附件里。仓库不含游戏或 BaseLib。若编译试玩桥，请显式传入 `-p:Sts2Dir=<游戏安装目录>`，只编译时加 `-p:SkipModCopy=true`。
 
 ## v0.4.9-alpha 美术更新
 

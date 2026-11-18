@@ -16,7 +16,7 @@
 .\Build.ps1 -GameDir '<游戏安装目录>' -BaseLibPath '<BaseLib.dll 完整路径>'
 ```
 
-脚本生成 `package/ArtuMod/ArtuMod.dll`，**源码仓库本身不是安装包**。运行还需配套的 `ArtuMod.pck`。请从 [Steam 创意工坊条目](https://steamcommunity.com/sharedfiles/filedetails/?id=3817779845) 取得同版本资源包。也可用 Python 和 Pillow 基于 v0.4.8-alpha 的 PCK（SHA-256 `185177b628d0aedd94260977f56412e55d6df687877b86548980b1d125f0e556`）重建：`python tools/build_art_preview.py assets/art-preview <旧版PCK> <新PCK> --layout full`。先输出到新路径，再与 DLL 配套安装。仓库不含游戏或依赖 DLL。若编译试玩桥，请显式传入 `-p:Sts2Dir=<游戏安装目录>`，只编译时加 `-p:SkipModCopy=true`。
+脚本生成 `package/ArtuMod/ArtuMod.dll`，不生成资源包。可直接安装的六个文件在 [v0.4.9-alpha-install](https://github.com/Lau-Jyu-Hong/Sudan-s-Game-STS2-mod-/releases/tag/v0.4.9-alpha-install) 的 `ArtuMod-v0.4.9-alpha-install.zip`。关闭游戏后，把压缩包里的 `ArtuMod` 文件夹放进游戏的 `mods` 目录。`ArtuMod.pck` 只在这个 Release 附件里。仓库不含游戏或 BaseLib。若编译试玩桥，请显式传入 `-p:Sts2Dir=<游戏安装目录>`，只编译时加 `-p:SkipModCopy=true`。
 
 ## v0.4.9-alpha 美术更新
 

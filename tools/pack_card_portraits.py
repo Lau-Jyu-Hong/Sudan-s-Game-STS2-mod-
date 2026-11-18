@@ -1,4 +1,4 @@
-"""Replace eight ordinary card portraits. Does not touch Sultan full-card art."""
+"""Add the latest ordinary card portraits. Does not touch Sultan full-card art."""
 import hashlib
 from pathlib import Path
 
@@ -12,17 +12,31 @@ SOURCE = Path(
     r"\c-Users-Administrator-Documents-Codex-2026-07-23-new-chat-work-artu-public-v0-4-7-alpha\assets"
 )
 INSTALLED = Path(r"F:\SteamLibrary\steamapps\common\Slay the Spire 2\mods\ArtuMod\ArtuMod.pck")
-OUTPUT = ROOT / "design" / "cursor_art_task" / "outputs" / "ArtuMod-card-portraits.pck"
+OUTPUT = ROOT / "design" / "cursor_art_task" / "outputs" / "ArtuMod-card-portraits-20261118.pck"
 PORTRAITS = ROOT / "assets" / "card-ui" / "portraits"
 NAMES = (
-    "wifestea",
-    "moondogbook",
-    "recruittroops",
-    "criminalrecruits",
-    "drill",
-    "imperialexpedition",
-    "purethought",
-    "uncleanthought",
+    "fearofsultan",
+    "backroomdeal",
+    "obeyorders",
+    "returnonspending",
+    "stateaffairs",
+    "weighoptions",
+    "temporaryrecruitment",
+    "allarmyattack",
+    "blockreprisal",
+    "destructivestrike",
+    "tribunal",
+    "sharekingsburden",
+    "allbykingsgrace",
+    "hollowauthority",
+    "bowtosultan",
+    "indulgentlife",
+    "elitetroops",
+    "warsong",
+    "trainarmy",
+    "revolutionaryacademy",
+    "armymight",
+    "chivalry",
 )
 
 
@@ -32,13 +46,11 @@ def main() -> None:
     print("installed", hashlib.sha256(INSTALLED.read_bytes()).hexdigest()[:12], "files", len(entries))
     for name in NAMES:
         key = f"ArtuMod/images/{name}.tres"
-        if key not in entries:
-            raise SystemExit(f"missing {key}")
         image = Image.open(SOURCE / f"{name}.jpg")
         fitted = ImageOps.fit(image.convert("RGB"), (250, 190), Image.Resampling.LANCZOS)
         fitted.save(PORTRAITS / f"{name}.png")
         entries[key] = texture(fitted, (250, 190))
-        print("replaced", key, fitted.size)
+        print("packed", key, fitted.size)
     if OUTPUT.exists():
         raise SystemExit(f"refuse overwrite {OUTPUT}")
     write_pack(OUTPUT, entries)

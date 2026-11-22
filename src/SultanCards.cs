@@ -18,7 +18,7 @@ public abstract class SultanCard(SultanSuit suit,SultanGrade grade) : ArtuCard(1
     protected override IEnumerable<DynamicVar> CanonicalVars=>Suit==SultanSuit.Slaughter
         ?[new DamageVar(Rules.SlaughterDamage(Grade),Grade>=SultanGrade.Silver?ValueProp.Move|ValueProp.Unblockable:ValueProp.Move)]
         :[];
-    protected override bool IsPlayable => (V04Replay.Free(this)||Owner.Creature.HasPower<PassPower>())?CanResolveWaived():Owner.Creature.GetPower<LifeScepterPower>()?.Available==true||Util.Tyranny(Owner)||SultanPayments.HasReplacement(this)||CanPayAny();
+    protected override bool IsPlayable => (V04Replay.Free(this)||Owner.Creature.HasPower<PassPower>()||Owner.Creature.HasPower<PardonDecreePower>()||UsurperCrownPower.Waives(this))?CanResolveWaived():Owner.Creature.GetPower<LifeScepterPower>()?.Available==true||Util.Tyranny(Owner)||SultanPayments.HasReplacement(this)||CanPayAny();
     protected override void AddExtraArgsToDescription(LocString loc)
     {
         loc.Add("Battles",Original.BattlesRemaining);
@@ -105,15 +105,19 @@ public abstract class SultanCard(SultanSuit suit,SultanGrade grade) : ArtuCard(1
         bool paid=false;
         bool actualUse=play.Card==this;
         bool replacement=actualUse&&SultanPayments.ConsumeReplacement(this);
-        var pass=actualUse?Owner.Creature.GetPower<PassPower>():null;
-        bool waived=V04Replay.Free(this,play)||pass!=null;
+        bool replayFree=V04Replay.Free(this,play);
+        bool crownUse=actualUse&&play.IsFirstInSeries&&!replayFree&&Owner.Creature.GetPower<UsurperCrownPower>()?.TryConsume(this)==true;
+        var pass=actualUse&&!crownUse&&!replayFree?Owner.Creature.GetPower<PassPower>():null;
+        var pardon=actualUse&&!crownUse&&!replayFree&&pass==null?Owner.Creature.GetPower<PardonDecreePower>():null;
+        bool waived=replayFree||crownUse||pass!=null||pardon!=null;
         if(waived)
         {
             if(!CanResolveWaived())return;
             // Capture dependent inputs before skipping their deduction, for every exemption source.
             if(Suit==SultanSuit.Conquest&&Grade==SultanGrade.Stone)lostBlock=Owner.Creature.Block;
             if(Suit==SultanSuit.Luxury&&Grade==SultanGrade.Bronze){sacrificed=await Select(ctx,BronzeCandidates());if(sacrificed==null)return;}
-            if(pass!=null&&!V04Replay.Free(this,play))await PowerCmd.Decrement(pass);
+            if(pass!=null)await PowerCmd.Decrement(pass);
+            if(pardon!=null)await PowerCmd.Decrement(pardon);
             paid=true;
         }
         else if(replacement){await PowerCmd.Apply<CrimePower>(ctx,Owner.Creature,1,Owner.Creature,play.Card);await PaymentLedger.Record(ctx,Owner,false);paid=true;}

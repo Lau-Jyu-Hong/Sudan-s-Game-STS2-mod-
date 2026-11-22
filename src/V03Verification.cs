@@ -18,7 +18,7 @@ public static class V03Verification
         try
         {
             var pool=ModelDb.CardPool<ArtuCardPool>().AllCards.ToArray();
-            Check("third batch pool: 23 common, 36 uncommon, 26 rare",pool.Count(c=>c.Rarity==CardRarity.Common)==23&&pool.Count(c=>c.Rarity==CardRarity.Uncommon)==36&&pool.Count(c=>c.Rarity==CardRarity.Rare)==26);
+            Check("third batch pool: 24 common, 38 uncommon, 26 rare",pool.Count(c=>c.Rarity==CardRarity.Common)==24&&pool.Count(c=>c.Rarity==CardRarity.Uncommon)==38&&pool.Count(c=>c.Rarity==CardRarity.Rare)==26);
             Check("v04 final thoughts excluded from normal rewards",pool.OfType<FinalThought>().All(c=>c.Rarity is CardRarity.Event or CardRarity.Ancient&&!c.CanBeGeneratedInCombat&&!c.CanBeGeneratedByModifiers));
             Check("v03 three second thoughts are 1-energy uncommon powers without upgrades",new CardModel[]{ModelDb.Card<TouchPurity>(),ModelDb.Card<GlimpseDarkness>(),ModelDb.Card<FreedomFromFear>()}.All(c=>c.Type==CardType.Power&&c.Rarity==CardRarity.Uncommon&&c.EnergyCost.Canonical==1&&c.MaxUpgradeLevel==0));
             Check("v03 all Sultan cards remain Curse outside use predicates",pool.OfType<SultanCard>().All(c=>c.Type==CardType.Curse&&!c.IsRemovable&&!c.IsTransformable&&!c.IsUpgradable)&&!pool.Where(c=>c.Type==CardType.Attack||c.Type==CardType.Skill).OfType<SultanCard>().Any());
@@ -114,13 +114,14 @@ public static class V03Verification
                 f.Apply<SoldierPower>(n);int hp=f.Enemy.CurrentHp;
                 var card=f.Card<SoldierCharge>();if(upgraded)CardCmd.Upgrade(card);
                 f.Play(card);
-                Check($"v03 charge consumes all {n} soldiers upgraded={upgraded}",f.Player.Creature.GetPowerAmount<SoldierPower>()==0&&hp-f.Enemy.CurrentHp==8+n*(upgraded?5:4)&&f.Player.Creature.Block==5);
+                int bonus=upgraded?9:6;int damage=(upgraded?5:4)+n*bonus;int block=upgraded?3:2;
+                Check($"v03 charge spends all soldiers upgraded={upgraded} count={n}",f.Player.Creature.GetPowerAmount<SoldierPower>()==0&&hp-f.Enemy.CurrentHp==damage&&f.Player.Creature.Block==block);
             }
             using(var f=new Fixture())
             {
                 int hp=f.Enemy.CurrentHp;var card=f.Card<SoldierCharge>();
-                Check("v03 zero-soldier charge is not normally playable",!(bool)AccessTools.Property(typeof(CardModel),"IsPlayable").GetValue(card)!);
-                f.Play(card);Check("v03 forced zero-soldier charge has no damage/block benefit",f.Enemy.CurrentHp==hp&&f.Player.Creature.Block==0);
+                Check("v03 zero-soldier charge is playable", (bool)AccessTools.Property(typeof(CardModel),"IsPlayable").GetValue(card)!);
+                f.Play(card);Check("v03 zero-soldier charge keeps the 4 damage 2 block floor",hp-f.Enemy.CurrentHp==4&&f.Player.Creature.Block==2);
             }
             using(var f=new Fixture())
             {

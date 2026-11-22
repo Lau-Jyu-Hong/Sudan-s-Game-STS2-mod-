@@ -310,3 +310,16 @@ public sealed class ExchangeSultanOption(Player owner):CustomRestSiteOption(owne
         await Util.RemoveSultan(original);CardCmd.PreviewCardPileAdd(await CardPileCmd.Add(card,PileType.Deck));return true;
     }
 }
+public sealed class RemoveSultanOption(Player owner):CustomRestSiteOption(owner)
+{
+    public override string OptionId=>"ARTU_REMOVE_SULTAN";
+    public override string CustomIconPath=>"res://ArtuMod/images/status/crimepower.tres";
+    public override bool IsEnabled=>Owner.Deck.Cards.OfType<SultanCard>().Any();
+    public override async Task<bool> OnSelect()
+    {
+        var selected=await CardSelectCmd.FromDeckGeneric(Owner,new CardSelectorPrefs(new LocString("rest_site_ui","OPTION_ARTU_REMOVE_SULTAN.description"),1),c=>c is SultanCard);
+        if(selected.FirstOrDefault() is not SultanCard card)return false;
+        await Util.RemoveSultan(card);
+        return true;
+    }
+}

@@ -18,6 +18,24 @@ internal static class ArtPreview
         return ResourceLoader.Exists(path) ? path : null;
     }
 
+    internal static string? CombatScene(string key)
+    {
+        string path = $"res://ArtuMod/scenes/creature_visuals/{key}.tscn";
+        return ResourceLoader.Exists(path) ? path : null;
+    }
+
+    internal static string? RestSiteScene(string key)
+    {
+        string path = $"res://ArtuMod/scenes/rest_site/{key}.tscn";
+        return ResourceLoader.Exists(path) ? path : null;
+    }
+
+    internal static string? MerchantScene(string key)
+    {
+        string path = $"res://ArtuMod/scenes/merchant/{key}.tscn";
+        return ResourceLoader.Exists(path) ? path : null;
+    }
+
     internal static Texture2D? Texture(string key) =>
         Existing(key) is {} path ? ResourceLoader.Load<Texture2D>(path) : null;
 }
@@ -71,6 +89,25 @@ internal static class SultanFullArtLayout
         frame.Hide();
         // Keep the ordinary banner, labels, energy, targeting and enchantment visuals.
         // The lower half of the outpainted texture already provides a dark copy-safe area.
+    }
+}
+
+[HarmonyPatch(typeof(NCard), nameof(NCard.UpdateVisuals))]
+internal static class ArtuCardFrame
+{
+    // Visual only. The tablet replaces the shared attack, skill and power frame.
+    // Sultan cards hide that frame and use the full-card portrait instead.
+    // Ancient cards keep the game's own ancient frame.
+    private static void Postfix(NCard __instance)
+    {
+        if (!__instance.IsNodeReady() || __instance.Model is not ArtuCard card ||
+            card is SultanCard || card.Rarity == CardRarity.Ancient ||
+            __instance.GetNodeOrNull<TextureRect>("%Frame") is not {} frame ||
+            ArtPreview.Texture("card_frame") is not {} texture) return;
+        frame.Texture = texture;
+        // The pool tint recolors the vanilla red frame. Leave the painted leather as drawn.
+        frame.Material = null;
+        frame.Show();
     }
 }
 

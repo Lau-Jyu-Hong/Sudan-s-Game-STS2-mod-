@@ -18,9 +18,18 @@ public sealed class Artu : PlaceholderCharacterModel
     public override string? CustomIconOutlineTexturePath => ArtPreview.Existing("artu_top") != null ? null : base.CustomIconOutlineTexturePath;
     public override string CustomIconPath => ArtPreview.Scene("icon") ?? base.CustomIconPath;
     public override string CustomCharacterSelectBg => ArtPreview.Scene("bg") ?? base.CustomCharacterSelectBg;
+    public override string CustomVisualPath => ArtPreview.CombatScene("artu") ?? base.CustomVisualPath;
+    public override string CustomRestSiteAnimPath => ArtPreview.RestSiteScene("artu_rest_site") ?? base.CustomRestSiteAnimPath;
+    public override string CustomMerchantAnimPath => ArtPreview.MerchantScene("artu_merchant") ?? base.CustomMerchantAnimPath;
+    // The painted slash is readable at this moment. Damage still uses the same attack, only later in the swing.
+    public override float AttackAnimDelay => 0.45f;
+    public override string CustomArmPointingTexturePath => ArtPreview.Existing("arm_pointing") ?? base.CustomArmPointingTexturePath;
+    public override string CustomArmRockTexturePath => ArtPreview.Existing("arm_rock") ?? base.CustomArmRockTexturePath;
+    public override string CustomArmPaperTexturePath => ArtPreview.Existing("arm_paper") ?? base.CustomArmPaperTexturePath;
+    public override string CustomArmScissorsTexturePath => ArtPreview.Existing("arm_scissors") ?? base.CustomArmScissorsTexturePath;
     public override CardPoolModel CardPool => ModelDb.CardPool<ArtuCardPool>();
     public override RelicPoolModel RelicPool => ModelDb.RelicPool<ArtuRelicPool>();
-    public override PotionPoolModel PotionPool => ModelDb.PotionPool<MegaCrit.Sts2.Core.Models.PotionPools.IroncladPotionPool>();
+    public override PotionPoolModel PotionPool => ModelDb.PotionPool<ArtuPotionPool>();
     public override IEnumerable<CardModel> StartingDeck => [
         ModelDb.Card<StoneSlaughter>(),ModelDb.Card<StoneSlaughter>(),
         ModelDb.Card<StoneConquest>(),ModelDb.Card<StoneConquest>(),

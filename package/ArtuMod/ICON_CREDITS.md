@@ -81,3 +81,6 @@ License: CC BY 3.0 — https://creativecommons.org/licenses/by/3.0/
 | 虔信 | `StateDevotion` | [prayer / Lorc](https://game-icons.net/1x1/lorc/prayer.html) |
 | 狂信 | `StateFanaticism` | [burning-eye / Lorc](https://game-icons.net/1x1/lorc/burning-eye.html) |
 | 谋逆 | `StateTreason` | [black-flag / Lorc](https://game-icons.net/1x1/lorc/black-flag.html) |
+| 篡位者的王冠 | `UsurperCrownPower` | [crown / Lorc](https://game-icons.net/1x1/lorc/crown.html) |
+| 黑天秤 | `ScalesWaiverPower` | [scales / Lorc](https://game-icons.net/1x1/lorc/scales.html) |
+| 免死密诏 | `PardonDecreePower` | [ticket / Delapouite](https://game-icons.net/1x1/delapouite/ticket.html) |

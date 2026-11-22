@@ -1,6 +1,6 @@
 # 苏丹的游戏 — 阿尔图 Mod
 
-《杀戮尖塔 2》的阿尔图角色 Mod。当前源码对应 **v0.4.9-alpha**，适配游戏 v0.113.1。原作、素材来源与各自许可见 [CREDITS.md](CREDITS.md)；这是非官方、非商业粉丝作品。
+《杀戮尖塔 2》的阿尔图角色 Mod。当前源码对应 **v0.4.10-alpha**，适配游戏 v0.113.1。原作、素材来源与各自许可见 [CREDITS.md](CREDITS.md)；这是非官方、非商业粉丝作品。
 
 ## 源码与构建
 
@@ -16,7 +16,14 @@
 .\Build.ps1 -GameDir '<游戏安装目录>' -BaseLibPath '<BaseLib.dll 完整路径>'
 ```
 
-脚本生成 `package/ArtuMod/ArtuMod.dll`，不生成资源包。可直接安装的六个文件在 [v0.4.9-alpha-cardart](https://github.com/Lau-Jyu-Hong/Sudan-s-Game-STS2-mod-/releases/tag/v0.4.9-alpha-cardart) 的 `ArtuMod-v0.4.9-alpha-cardart.zip`。关闭游戏后，把压缩包里的 `ArtuMod` 文件夹放进游戏的 `mods` 目录。`ArtuMod.pck` 只在这个 Release 附件里。仓库不含游戏或 BaseLib。若编译试玩桥，请显式传入 `-p:Sts2Dir=<游戏安装目录>`，只编译时加 `-p:SkipModCopy=true`。
+脚本生成 `package/ArtuMod/ArtuMod.dll`，不生成资源包。可直接安装的六个文件在 [v0.4.10-alpha](https://github.com/Lau-Jyu-Hong/Sudan-s-Game-STS2-mod-/releases/tag/v0.4.10-alpha) 的 `ArtuMod-v0.4.10-alpha.zip`。关闭游戏后，把压缩包里的 `ArtuMod` 文件夹放进游戏的 `mods` 目录。`ArtuMod.pck` 只在这个 Release 附件里。仓库不含游戏或 BaseLib。若编译试玩桥，请显式传入 `-p:Sts2Dir=<游戏安装目录>`，只编译时加 `-p:SkipModCopy=true`。
+
+## v0.4.10-alpha 军队生态
+
+- 常规奖励牌 88 张：普通 24、罕见 38、稀有 26。新增阵列突刺、以身受命、私掠军饷。
+- 率兵冲锋未升级为 4 伤害、2 格挡；有士兵时消耗全部，每层额外 6 伤害。升级后为 5 伤害、3 格挡，每层额外 9 伤害。没有士兵也能打出，不再施加易伤。
+- 血染战鼓替换女术士的牌盒。另有苏丹铜戒、黑天秤、老旧军旗、近卫军令状、高利贷契约、闯关降卒，以及海克斯棱彩遗物篡位者的王冠。药水为征召号角、免死密诏、赦免圣水。
+- 弱史莱姆战斗中核对了率兵冲锋：未升级 0、1、3 层士兵分别为 4、10、22 伤害，格挡各增加 2；升级后 0 层为 5 伤 3 格挡，1 层为 14 伤 3 格挡。安装包含当前角色场面和普通牌卡框。大量卡图仍是占位，联机未做全面验收。
 
 ## v0.4.9-alpha 美术更新
 

@@ -135,5 +135,6 @@ Icons made by **Lorc** and **Delapouite**. Available on https://game-icons.net.
 - `assets/combat-visuals/artu_rest_site.png`：同一绘图流程生成的篝火坐姿，只画读卷轴的人，不另画木桩。左侧座位朝向火堆；右侧座位沿用游戏原有的水平翻转。
 - `assets/combat-visuals/enemies/`：同一绘图流程生成的王冠骑士、军阀、佣兵队长攻击与施法立绘，以及王室护卫、封锁、征调、征募四张技能演出。攻击朝画面左侧。扩军与征募共用征募演出。
 - 安装包中的 `allarmypower.tres` 与 `armymightpower.tres` 使用新生成的三矛与红旗。Game-icons.net 的 backup 登记仍对应基础资源包与历史版本，其余临时状态图标的署名和许可不变。
+- `ArtuMod/images/usurperscrown.tres`：同一绘图流程生成的棱彩海克斯遗物图标，圆形星云底上是水晶冠冕。只用于篡位者的王冠。战斗状态栏里的同名状态仍用 Game-icons.net 的 Lorc / crown（CC BY 3.0），与近卫军令状等状态图标的署名方式相同。黑天秤豁免复用 Lorc / scales，免死密诏复用 Delapouite / ticket。
 - 不重新分发用来查看游戏显示效果的原版截图，不把参考图计作 Mod 新增资源。
 

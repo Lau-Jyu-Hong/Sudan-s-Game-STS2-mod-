@@ -30,6 +30,7 @@ public static class V04
         else for(int i=0;i<n;i++)await ArmyPower.Gain(ctx,p,ArmyPower.RandomAdvanced(p),1,source);
         if(Util.State(p) is {} s)s.LeviesConverted+=n;
         foreach(var recruitment in p.Creature.Powers.OfType<TemporaryRecruitmentPower>().ToArray())await recruitment.OnConverted(ctx,n,source);
+        if(n>0&&p.Relics.Any(r=>r is GuardsOrder))await CreatureCmd.GainBlock(p.Creature,n*4,ValueProp.Unpowered,null);
         await RevolutionAgenda.Refresh(p,ctx);return n;
     }
     public static async Task TriggerAll(PlayerChoiceContext ctx,Player p,int times=1)

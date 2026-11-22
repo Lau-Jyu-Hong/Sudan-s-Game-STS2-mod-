@@ -36,7 +36,7 @@ public abstract class TeaMonster : CustomMonsterModel, ILocalizationProvider
     public override DamageSfxType TakeDamageSfxType => DamageSfxType.Armor;
     public override string CustomDeathSfx => VisualTemplate.DeathSfx;
     public override CreatureAnimator GenerateAnimator(MegaSprite controller) => VisualTemplate.GenerateAnimator(controller);
-    protected Task Cast() => CreatureCmd.TriggerAnim(Creature,"Cast",0.25f);
+    protected Task Cast(string anim="Cast") => CreatureCmd.TriggerAnim(Creature,anim,0.25f);
     protected Task Attack(int amount) => DamageCmd.Attack(amount).FromMonster(this)
         .WithAttackerAnim(AttackAnimation,0.25f).WithHitFx("vfx/vfx_attack_slash").Execute(null);
 }
@@ -47,7 +47,7 @@ public sealed class TeaCrownKnight : TeaMonster
     public override int MaxInitialHp => 140;
     protected override MonsterModel VisualTemplate => ModelDb.Monster<FlailKnight>();
     protected override string AttackAnimation => "RamAttack";
-    public override string CustomVisualPath => "res://scenes/creature_visuals/flail_knight.tscn";
+    public override string CustomVisualPath => ArtPreview.CombatScene("crown_knight") ?? "res://scenes/creature_visuals/flail_knight.tscn";
     public IEnumerable<Creature> LivingAllies => CombatState.Enemies.Where(c=>c!=Creature&&!c.IsDead);
     public override List<(string,string)> Localization => new MonsterLoc("王冠骑士",
         [("ROYAL_STRIKE","王室剑击"),("HEAVY_SLASH","重斩"),("ROYAL_GUARD","王权庇护"),("LAST_STAND","孤军重斩")]);
@@ -69,7 +69,7 @@ public sealed class TeaCrownKnight : TeaMonster
     {
         var ally=LivingAllies.OrderBy(c=>c.CurrentHp).ThenBy(c=>c.CombatId).FirstOrDefault();
         if(ally==null){await Attack(16);return;}
-        await Cast();
+        await Cast("RoyalGuard");
         // Powered monster block invokes the game's multiplayer multiplier exactly once.
         await CreatureCmd.GainBlock(ally,20,ValueProp.Move,null);
     }
@@ -86,7 +86,7 @@ public sealed class TeaWarlord : TeaMonster
     public override int MaxInitialHp => 85;
     protected override MonsterModel VisualTemplate => ModelDb.Monster<MagiKnight>();
     protected override string AttackAnimation => "RamAttack";
-    public override string CustomVisualPath => "res://scenes/creature_visuals/magi_knight.tscn";
+    public override string CustomVisualPath => ArtPreview.CombatScene("warlord") ?? "res://scenes/creature_visuals/magi_knight.tscn";
     public override List<(string,string)> Localization => new MonsterLoc("军阀",
         [("SUPPLY_BLOCKADE","封锁补给"),("REQUISITION","军需管制"),("BREAK_FORMATION","破阵突袭"),("FATIGUE","疲敌战术")]);
     protected override MonsterMoveStateMachine GenerateMoveStateMachine()
@@ -101,13 +101,13 @@ public sealed class TeaWarlord : TeaMonster
     }
     public async Task Blockade()
     {
-        await Cast();
+        await Cast("Blockade");
         foreach(var target in CombatState.PlayerCreatures.Where(c=>!c.IsDead).ToArray())
             await PowerCmd.Apply<SupplyBlockadePower>(new ThrowingPlayerChoiceContext(),target,1,Creature,null);
     }
     public async Task Requisition()
     {
-        await Cast();
+        await Cast("Requisition");
         foreach(var target in CombatState.PlayerCreatures.Where(c=>!c.IsDead).ToArray())
             await PowerCmd.Apply<RequisitionPower>(new ThrowingPlayerChoiceContext(),target,1,Creature,null);
     }
@@ -128,7 +128,7 @@ public sealed class TeaMercenaryCaptain : TeaMonster
     public override int MaxInitialHp => 65;
     protected override MonsterModel VisualTemplate => ModelDb.Monster<SpectralKnight>();
     protected override string AttackAnimation => "AttackSword";
-    public override string CustomVisualPath => "res://scenes/creature_visuals/spectral_knight.tscn";
+    public override string CustomVisualPath => ArtPreview.CombatScene("mercenary_captain") ?? "res://scenes/creature_visuals/spectral_knight.tscn";
     public override List<(string,string)> Localization => new MonsterLoc("佣兵队长",
         [("RECRUIT_SOLDIERS","招募士兵"),("RECRUIT_VETERANS","招募精兵"),("RECRUIT_ELITES","招募锐士"),("EXPAND_ARMY","扩军整备")]);
     protected override void DeepCloneFields(){base.DeepCloneFields();RecruitCount=InitialRecruitCount;}
@@ -152,14 +152,14 @@ public sealed class TeaMercenaryCaptain : TeaMonster
     }
     public async Task Recruit(int kind)
     {
-        await Cast();var ctx=new ThrowingPlayerChoiceContext();
+        await Cast("Recruit");var ctx=new ThrowingPlayerChoiceContext();
         if(kind==1)await PowerCmd.Apply<EnemySoldierPower>(ctx,Creature,RecruitCount,Creature,null);
         else if(kind==2)await PowerCmd.Apply<EnemyVeteranPower>(ctx,Creature,RecruitCount,Creature,null);
         else await PowerCmd.Apply<EnemyElitePower>(ctx,Creature,RecruitCount,Creature,null);
     }
     public async Task Expand()
     {
-        await Cast();RecruitCount++;
+        await Cast("Expand");RecruitCount++;
         var ctx=new ThrowingPlayerChoiceContext();
         // Apply scales new powers, but an existing power's increment uses the raw amount.
         if(Creature.GetPower<PlatingPower>() is {} plating)

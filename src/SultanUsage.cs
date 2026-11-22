@@ -84,7 +84,7 @@ static class SultanTargetPayment
     static void Postfix(CardModel __instance,Creature? target,ref bool __result)
     {
         if(!__result||__instance is not SultanCard card||BeckyController.Active(card.Owner)||Util.Tyranny(card.Owner)||
-            card.Owner.Creature.HasPower<PassPower>()||SultanPayments.HasReplacement(card)||V04Replay.Free(card)||card.Owner.Creature.GetPower<LifeScepterPower>()?.Available==true)return;
+            card.Owner.Creature.HasPower<PassPower>()||card.Owner.Creature.HasPower<PardonDecreePower>()||UsurperCrownPower.Waives(card)||SultanPayments.HasReplacement(card)||V04Replay.Free(card)||card.Owner.Creature.GetPower<LifeScepterPower>()?.Available==true)return;
         __result=card.CanPayTarget(target);
     }
 }

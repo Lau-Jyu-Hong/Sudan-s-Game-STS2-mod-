@@ -173,9 +173,10 @@ public sealed class CrimePower():ArtuPower("罪证","跨战斗保存，不随胜
 {
     int taxedTurn=-1;
     protected override void DeepCloneFields(){base.DeepCloneFields();taxedTurn=-1;}
-    public override decimal ModifyDamageAdditive(Creature? target,decimal amount,ValueProp props,Creature? dealer,CardModel? card,CardPlay? play)=>dealer==Owner&&card!=null&&!props.HasFlag(ValueProp.Unpowered)&&Amount>=1?-1:0;
-    public override decimal ModifyBlockAdditive(Creature target,decimal amount,ValueProp props,CardModel? card,CardPlay? play)=>target==Owner&&card!=null&&Amount>=2?-1:0;
-    public override decimal ModifyHandDraw(Player p,decimal count)=>p==Owner.Player&&Amount>=3?count-1:count;
+    bool ScalesOpen=>Owner.HasPower<ScalesWaiverPower>();
+    public override decimal ModifyDamageAdditive(Creature? target,decimal amount,ValueProp props,Creature? dealer,CardModel? card,CardPlay? play)=>dealer==Owner&&card!=null&&!props.HasFlag(ValueProp.Unpowered)&&Amount>=1&&!ScalesOpen?-1:0;
+    public override decimal ModifyBlockAdditive(Creature target,decimal amount,ValueProp props,CardModel? card,CardPlay? play)=>target==Owner&&card!=null&&Amount>=2&&!ScalesOpen?-1:0;
+    public override decimal ModifyHandDraw(Player p,decimal count)=>p==Owner.Player&&Amount>=3&&!ScalesOpen?count-1:count;
     public override decimal ModifyMaxEnergy(Player p,decimal amount)=>p==Owner.Player&&Amount>=4?amount-1:amount;
     public override Task AfterEnergyReset(Player p)
     {if(p==Owner.Player&&Amount>=4)ArtuFeedback.Show(p,$"罪证≥4：自然能量−1；重置后当前{p.PlayerCombatState!.Energy}能量。");return Task.CompletedTask;}

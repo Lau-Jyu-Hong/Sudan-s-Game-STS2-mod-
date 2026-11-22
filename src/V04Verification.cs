@@ -17,7 +17,7 @@ public static class V04Verification
             var expected=new Type[]{typeof(KnowYourEnemy),typeof(RobPeterToPayPaul),typeof(CriminalDefense),typeof(SecretMessenger),typeof(MarchingDrum),typeof(CollectiveWisdom),typeof(ScribesManuscript),typeof(AtonementPrayer),typeof(AncientFaith),typeof(RebellionIntent),typeof(ArmyRegularization),typeof(RevolutionaryAcademy),typeof(AllByKingsGrace),typeof(SpiralWaltz),typeof(OpenThought),typeof(LifeScepter),typeof(ProfitFromCrime),typeof(BurnTheBoats),typeof(UndergroundPress),typeof(MoneyOpensDoors),typeof(RoyalConscription)};
             using(var f=new Fixture())
             {
-                var normal=V04.RewardCards(f.Player).ToArray();Check("ordinary rewards register 23/36/26=85",normal.Length==85&&normal.Count(c=>c.Rarity==CardRarity.Common)==23&&normal.Count(c=>c.Rarity==CardRarity.Uncommon)==36&&normal.Count(c=>c.Rarity==CardRarity.Rare)==26);
+                var normal=V04.RewardCards(f.Player).ToArray();Check("ordinary rewards register 24/38/26=88",normal.Length==88&&normal.Count(c=>c.Rarity==CardRarity.Common)==24&&normal.Count(c=>c.Rarity==CardRarity.Uncommon)==38&&normal.Count(c=>c.Rarity==CardRarity.Rare)==26);
                 foreach(var type in expected)
                 {var card=normal.Single(c=>c.GetType()==type);Check($"{card.Title} is a real registered reward",card.CanBeGeneratedInCombat&&card.CanBeGeneratedByModifiers&&card.Localization!.All(t=>!t.Item2.Contains("未确定")));
                 var mutable=f.Combat.CreateCard(card,f.Player);Check($"{type.Name} upgrade rule",mutable.IsUpgradable==(!card.Thought&&!card.Reading));if(mutable.IsUpgradable){CardCmd.Upgrade(mutable);Check($"{type.Name} upgrade applies",mutable.IsUpgraded);}}

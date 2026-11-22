@@ -18,7 +18,14 @@ public static class TeaPartyChallenge
     {
         if(model is not RoundTeaParty||!HasArtu(model)||model.Owner is not {} owner)return original;
         var payer=owner.RunState.Players.Where(p=>p.Character is Artu&&p.Deck.Cards.Any(Eligible)).OrderBy(p=>p.NetId).FirstOrDefault();
-        if(payer==null)return original;
+        if(payer==null)
+        {
+            var lockedOption=EventText.Option(model,"ARTU_TEA_CHALLENGE_LOCKED","你们也配强迫我选择？",
+                "【锁定】需要阿尔图牌组中拥有1张青铜或以上品级的杀戮苏丹牌。全队共同挑战王冠骑士、军阀与佣兵队长。胜利后每人获得2件随机遗物并回复20生命。",
+                null!);
+            AccessTools.Field(typeof(EventOption),"<IsLocked>k__BackingField")?.SetValue(lockedOption,true);
+            return [..original,lockedOption];
+        }
         var consent=Consents.GetValue(owner.RunState,r=>new TeaChallengeConsent(r.Players.Select(p=>p.NetId)));
         // Capture the same payer for every player's event before any instance removes the cost.
         var option=EventText.Option(model,"ARTU_TEA_CHALLENGE","你们也配强迫我选择？",

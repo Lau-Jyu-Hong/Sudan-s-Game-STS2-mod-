@@ -39,6 +39,36 @@ public static class SmokeTests
                     ResourceLoader.Load<Texture2D>(path)?.GetHeight()==672)&&ArtPreview.Texture("map")?.GetWidth()==64&&
                 ArtPreview.Texture("energy")?.GetWidth()==128&&ArtPreview.Texture("energy_text")?.GetWidth()==40&&
                 ArtPreview.Texture("leaderless")?.GetWidth()==896&&ArtPreview.Texture("artu_button")?.GetHeight()==240);
+            Check("Art preview: rest site scene and multiplayer gestures exist",()=>
+            {
+                foreach(var g in new[] {"arm_pointing","arm_rock","arm_paper","arm_scissors"})
+                {
+                    if(ArtPreview.Texture(g)?.GetWidth()!=256)throw new Exception($"Missing or invalid gesture {g}");
+                }
+                var restPath=ArtPreview.RestSiteScene("artu_rest_site");
+                if(restPath==null||ResourceLoader.Load<PackedScene>(restPath)?.Instantiate() is not Node2D restNode)
+                    throw new Exception("Rest site scene missing or failed to instantiate");
+                restNode.Free();
+                var combatPath=ArtPreview.CombatScene("artu");
+                if(combatPath==null||ResourceLoader.Load<PackedScene>(combatPath)?.Instantiate() is not Node2D combatNode)
+                    throw new Exception("Combat scene missing or failed to instantiate");
+                var anim=combatNode.GetNodeOrNull<AnimationPlayer>("%AnimationPlayer");
+                foreach(var name in new[]{"idle","attack","hit","cast","die"})
+                    if(anim==null||!anim.HasAnimation(name))
+                        throw new Exception("Combat scene AnimationPlayer missing "+name);
+                combatNode.Free();
+                var merchantPath=ArtPreview.MerchantScene("artu_merchant");
+                if(merchantPath!=null)
+                {
+                    if(ResourceLoader.Load<PackedScene>(merchantPath)?.Instantiate() is not Node2D merchantNode)
+                        throw new Exception("Merchant scene failed to instantiate");
+                    var merchantAnim=merchantNode.GetNodeOrNull<AnimationPlayer>("%AnimationPlayer");
+                    if(merchantAnim==null||!merchantAnim.HasAnimation("idle"))
+                        throw new Exception("Merchant scene AnimationPlayer missing idle");
+                    merchantNode.Free();
+                }
+                return true;
+            });
             Check("Art preview: character select and general icon scenes instantiate",()=>
             {
                 foreach(var key in new[] {"bg","icon"})
@@ -65,6 +95,7 @@ public static class SmokeTests
         Check("Second batch verification",()=>{checks.AddRange(SecondBatchVerification.Run());return true;});
         Check("v0.4.3 incremental verification",()=>{checks.AddRange(V046Verification.Run());return true;});
         Check("third batch gameplay verification",()=>{checks.AddRange(ThirdBatchVerification.Run());return true;});
+        Check("ecology balance verification",()=>{checks.AddRange(EcologyVerification.Run());return true;});
         Directory.CreateDirectory(System.IO.Path.GetDirectoryName(output)!);
         var pool=ModelDb.Character<Artu>().CardPool.GetUnlockedCards(MegaCrit.Sts2.Core.Unlocks.UnlockState.all,CardMultiplayerConstraint.SingleplayerOnly).OfType<ArtuCard>().Where(c=>c.Rarity is CardRarity.Common or CardRarity.Uncommon or CardRarity.Rare).OrderBy(c=>c.Rarity).ThenBy(c=>c.Id.ToString()).Select(c=>new{id=c.Id.ToString(),name=c.Title,rarity=c.Rarity.ToString(),type=c.Type.ToString(),energy=c.EnergyCost.Canonical,upgradable=c.MaxUpgradeLevel>0,c.Reading,c.Thought,c.CanBeGeneratedInCombat,c.CanBeGeneratedByModifiers,description=c.GetDescriptionForPile(PileType.Deck)});
         File.WriteAllText(System.IO.Path.Combine(System.IO.Path.GetDirectoryName(output)!,"registered-pool.json"),JsonSerializer.Serialize(pool,new JsonSerializerOptions{WriteIndented=true}));

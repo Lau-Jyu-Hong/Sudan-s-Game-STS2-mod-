@@ -12,6 +12,9 @@ public static class RegisterArtuUi
         dict["OPTION_ARTU_EXCHANGE.description"]="选择一张非黄金苏丹牌，换为随机的高一级苏丹牌；继承剩余期限。";
         dict["OPTION_ARTU_CLEAR_CRIME.name"]="销毁罪证";
         dict["OPTION_ARTU_CLEAR_CRIME.description"]="移除1层罪证。消耗本次休息处行动，不回复生命。";
+        dict["OPTION_ARTU_REMOVE_SULTAN.name"]="销毁苏丹牌";
+        dict["OPTION_ARTU_REMOVE_SULTAN.description"]="永久移除1张苏丹牌。消耗本次休息处行动，不回复生命。";
+        HextechBridge.TryRegister();
         var selection=(Dictionary<string,string>)AccessTools.Field(typeof(LocTable),"_translations").GetValue(LocManager.Instance.GetTable("card_selection"))!;
         selection["ARTU_CHOOSE"]="选择一张牌。";
         selection["ARTU_SULTAN_TO_HAND"]="选择一张苏丹牌加入手牌。";

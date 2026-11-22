@@ -1,4 +1,6 @@
 using System.Reflection;
+using MegaCrit.Sts2.Core.Nodes.Combat;
+using MegaCrit.Sts2.Core.Nodes.Screens.Shops;
 namespace ArtuMod;
 [HarmonyPatch(typeof(PlayerCmd),nameof(PlayerCmd.EndTurn))]
 public static class ForcedOrdersEndTurn
@@ -99,4 +101,81 @@ public static class BanSilverLuxuryShop
 {
     static void Postfix(Player ____player,ref bool __result)
     {if(Util.State(____player)?.ActiveShopBan==true)__result=false;}
+}
+
+[HarmonyPatch(typeof(NCreature), nameof(NCreature.AnimShake))]
+public static class CreatureAnimShakeHurt
+{
+    static void Postfix(NCreature __instance)
+    {
+        try
+        {
+            var p = __instance.Visuals?.GetNodeOrNull<AnimationPlayer>("%AnimationPlayer") ??
+                    __instance.Visuals?.GetNodeOrNull<AnimationPlayer>("AnimationPlayer");
+            if (p != null && p.HasAnimation("hit"))
+            {
+                p.Play("hit");
+                if (p.HasAnimation("idle")) p.Queue("idle");
+            }
+        }
+        catch {}
+    }
+}
+
+[HarmonyPatch(typeof(CardModel), nameof(CardModel.OnPlayWrapper))]
+public static class ArtuAttackAnimationTrigger
+{
+    static void Postfix(CardModel __instance)
+    {
+        try
+        {
+            if (__instance.Owner?.Character is not Artu) return;
+            var animName = __instance.Type == CardType.Attack ? "attack"
+                : __instance.Type is CardType.Skill or CardType.Power ? "cast" : null;
+            if (animName == null) return;
+            var room = MegaCrit.Sts2.Core.Nodes.Rooms.NCombatRoom.Instance;
+            var node = room?.GetCreatureNode(__instance.Owner.Creature);
+            var p = node?.Visuals?.GetNodeOrNull<AnimationPlayer>("%AnimationPlayer") ??
+                    node?.Visuals?.GetNodeOrNull<AnimationPlayer>("AnimationPlayer");
+            if (p != null && p.HasAnimation(animName))
+            {
+                p.Play(animName);
+                if (p.HasAnimation("idle")) p.Queue("idle");
+            }
+        }
+        catch {}
+    }
+}
+
+[HarmonyPatch(typeof(NMerchantCharacter), nameof(NMerchantCharacter._Ready))]
+public static class ArtuMerchantIdle
+{
+    // The stock shop character plays a Spine clip on its first child. A painted
+    // pose has an AnimationPlayer instead, and the stock call would also draw a
+    // chaotic random number. Skip that path only when this scene brought its own.
+    static bool Prefix(NMerchantCharacter __instance)
+    {
+        var player = Animation(__instance);
+        if (player == null) return true;
+        if (player.HasAnimation("idle")) player.Play("idle");
+        return false;
+    }
+
+    internal static AnimationPlayer? Animation(Node node) =>
+        node.GetNodeOrNull<AnimationPlayer>("%AnimationPlayer") ??
+        node.GetNodeOrNull<AnimationPlayer>("AnimationPlayer");
+}
+
+[HarmonyPatch(typeof(NMerchantCharacter), nameof(NMerchantCharacter.PlayAnimation))]
+public static class ArtuMerchantPlay
+{
+    static bool Prefix(NMerchantCharacter __instance, string anim)
+    {
+        var player = ArtuMerchantIdle.Animation(__instance);
+        if (player == null) return true;
+        var name = anim is "relaxed_loop" or "Idle" ? "idle" : anim is "Die" or "Dead" or "dead" ? "die" : anim;
+        if (!player.HasAnimation(name)) name = player.HasAnimation("idle") ? "idle" : "";
+        if (name.Length > 0) player.Play(name);
+        return false;
+    }
 }

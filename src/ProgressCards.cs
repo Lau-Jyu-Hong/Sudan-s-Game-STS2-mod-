@@ -107,13 +107,18 @@ public sealed class IThink():RewardCard(0,CardType.Skill,CardRarity.Uncommon,Tar
     protected override async Task OnPlay(PlayerChoiceContext ctx,CardPlay play)
     {var cards=(await CardSelectCmd.FromHandForDiscard(ctx,Owner,new CardSelectorPrefs(SelectionScreenPrompt,0,Owner.PlayerCombatState!.Hand.Cards.Count),c=>c!=this,this)).ToArray();await CardCmd.Discard(ctx,cards);await CardPileCmd.Draw(ctx,cards.Length+(IsUpgraded?1:0),Owner);}
 }
-public sealed class SoldierCharge():RewardCard(1,CardType.Attack,CardRarity.Uncommon,TargetType.AnyEnemy,"率兵冲锋","须有士兵。消耗全部士兵，造成8+每层士兵×{Bonus}伤害，获得5格挡。")
+public sealed class SoldierCharge():RewardCard(1,CardType.Attack,CardRarity.Uncommon,TargetType.AnyEnemy,"率兵冲锋","造成{Damage:diff()}伤害，获得{Block:diff()}格挡。若有士兵，消耗全部，每层额外造成{Bonus}伤害。")
 {
-    protected override bool IsPlayable=>Owner.Creature.GetPowerAmount<SoldierPower>()>0;
-    protected override IEnumerable<DynamicVar> CanonicalVars=>[new DynamicVar("Bonus",4)];
+    protected override IEnumerable<DynamicVar> CanonicalVars=>[new DamageVar(4,ValueProp.Move),new BlockVar(2,ValueProp.Move),new DynamicVar("Bonus",6)];
     protected override async Task OnPlay(PlayerChoiceContext ctx,CardPlay play)
-    {var army=Owner.Creature.GetPower<SoldierPower>();if(army is not {Amount:>0})return;int n=army.Amount;await ArmyPower.Consume(ctx,army,n,play.Card);await Hit(ctx,play,8+n*DynamicVars["Bonus"].IntValue);await CreatureCmd.GainBlock(Owner.Creature,5,ValueProp.Move,play);}
-    protected override void OnUpgrade()=>DynamicVars["Bonus"].UpgradeValueBy(1);
+    {
+        await Hit(ctx,play,DynamicVars.Damage.IntValue);await CreatureCmd.GainBlock(Owner.Creature,DynamicVars.Block,play);
+        var army=Owner.Creature.GetPower<SoldierPower>();
+        if(army is not {Amount:>0}||play.Target==null)return;
+        int spent=army.Amount;
+        await ArmyPower.Consume(ctx,army,spent,play.Card);await Hit(ctx,play,DynamicVars["Bonus"].IntValue*spent);
+    }
+    protected override void OnUpgrade(){DynamicVars.Damage.UpgradeValueBy(1);DynamicVars.Block.UpgradeValueBy(1);DynamicVars["Bonus"].UpgradeValueBy(3);}
 }
 public sealed class ArmyInterchange():RewardCard(2,CardType.Power,CardRarity.Uncommon,TargetType.Self,"互通有无","有士兵时，锐士结算额外获得每层1格挡；有锐士时，精兵每层额外造成1伤害。{Extra}")
 {

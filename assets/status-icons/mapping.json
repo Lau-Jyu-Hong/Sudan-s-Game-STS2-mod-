@@ -71,5 +71,8 @@
   "StateMockery": ["苏丹的嘲弄", "delapouite/jester-hat", "purple"],
   "StateDevotion": ["虔信", "lorc/prayer", "gold"],
   "StateFanaticism": ["狂信", "lorc/burning-eye", "purple"],
-  "StateTreason": ["谋逆", "lorc/black-flag", "red"]
+  "StateTreason": ["谋逆", "lorc/black-flag", "red"],
+  "UsurperCrownPower": ["篡位者的王冠", "lorc/crown", "gold"],
+  "ScalesWaiverPower": ["黑天秤", "lorc/scales", "gold"],
+  "PardonDecreePower": ["免死密诏", "delapouite/ticket", "gold"]
 }

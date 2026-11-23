@@ -1,4 +1,6 @@
-# 苏丹的游戏 — 阿尔图 Mod（v0.4.10-alpha）
+# 苏丹的游戏 — 阿尔图 Mod（v0.4.11-alpha）
+
+v0.4.11-alpha 为原先没有专图的常规牌补上独立插图，已有专图和苏丹牌全卡图未替换。隔离环境抽样 10 张，游戏内画面与源图一致。玩法数值未改。以下为历史记录。
 
 本次更新 16 张苏丹牌全卡美术，保留诅咒类型、费用、期限和效果；同步更新选角图与头像、女术士的牌盒、「群龙无首」封面，以及地图、能量和两个军队状态图标。按游戏截图调整构图与缩放。游戏 v0.113.1、BaseLib v3.4.8；以下兼容修复和数值更新为历史记录。
 
@@ -22,7 +24,7 @@ v0.4.1规格、机制验证及安装信息见 `verification/v0.4.1防御补充�
 
 ## 在其他电脑安装
 
-可安装包：[v0.4.10-alpha](https://github.com/Lau-Jyu-Hong/Sudan-s-Game-STS2-mod-/releases/tag/v0.4.10-alpha) 的 `ArtuMod-v0.4.10-alpha.zip`。关闭游戏，将压缩包中的 **ArtuMod整个文件夹** 放进游戏的 `mods` 目录，最终应为：
+可安装包：[v0.4.11-alpha](https://github.com/Lau-Jyu-Hong/Sudan-s-Game-STS2-mod-/releases/tag/v0.4.11-alpha) 的 `ArtuMod-v0.4.11-alpha.zip`。关闭游戏，将压缩包中的 **ArtuMod整个文件夹** 放进游戏的 `mods` 目录，最终应为：
 
 ```
 Slay the Spire 2/mods/ArtuMod/ArtuMod.dll

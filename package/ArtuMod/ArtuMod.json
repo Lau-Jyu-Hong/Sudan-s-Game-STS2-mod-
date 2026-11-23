@@ -3,7 +3,7 @@
   "name": "苏丹的游戏 — 阿尔图",
   "author": "Artu Mod Project",
   "description": "阿尔图：16张全卡美术苏丹牌、兵种调度、思潮进化与革命议程。新版选角画面、头像、牌盒、群龙无首事件图，以及地图、能量和军队状态图标。Alpha版本。",
-  "version": "v0.4.10-alpha",
+  "version": "v0.4.11-alpha",
   "min_game_version": "0.113.1",
   "has_dll": true,
   "has_pck": true,

@@ -1,6 +1,6 @@
 # 苏丹的游戏 — 阿尔图 Mod
 
-《杀戮尖塔 2》的阿尔图角色 Mod。当前源码对应 **v0.4.10-alpha**，适配游戏 v0.113.1。原作、素材来源与各自许可见 [CREDITS.md](CREDITS.md)；这是非官方、非商业粉丝作品。
+《杀戮尖塔 2》的阿尔图角色 Mod。当前源码对应 **v0.4.11-alpha**，适配游戏 v0.113.1。原作、素材来源与各自许可见 [CREDITS.md](CREDITS.md)；这是非官方、非商业粉丝作品。
 
 ## 源码与构建
 
@@ -16,7 +16,13 @@
 .\Build.ps1 -GameDir '<游戏安装目录>' -BaseLibPath '<BaseLib.dll 完整路径>'
 ```
 
-脚本生成 `package/ArtuMod/ArtuMod.dll`，不生成资源包。可直接安装的六个文件在 [v0.4.10-alpha](https://github.com/Lau-Jyu-Hong/Sudan-s-Game-STS2-mod-/releases/tag/v0.4.10-alpha) 的 `ArtuMod-v0.4.10-alpha.zip`。关闭游戏后，把压缩包里的 `ArtuMod` 文件夹放进游戏的 `mods` 目录。`ArtuMod.pck` 只在这个 Release 附件里。仓库不含游戏或 BaseLib。若编译试玩桥，请显式传入 `-p:Sts2Dir=<游戏安装目录>`，只编译时加 `-p:SkipModCopy=true`。
+脚本生成 `package/ArtuMod/ArtuMod.dll`，不生成资源包。可直接安装的六个文件在 [v0.4.11-alpha](https://github.com/Lau-Jyu-Hong/Sudan-s-Game-STS2-mod-/releases/tag/v0.4.11-alpha) 的 `ArtuMod-v0.4.11-alpha.zip`。关闭游戏后，把压缩包里的 `ArtuMod` 文件夹放进游戏的 `mods` 目录。`ArtuMod.pck` 只在这个 Release 附件里。仓库不含游戏或 BaseLib。若编译试玩桥，请显式传入 `-p:Sts2Dir=<游戏安装目录>`，只编译时加 `-p:SkipModCopy=true`。
+
+## v0.4.11-alpha 常规牌插图
+
+- 为原先没有专图的常规牌补上 250×190 插图。已有专图和 16 张苏丹牌全卡图没有替换。
+- 隔离环境抽样阵列突刺、率兵冲锋、超级贝姬夫人、鳄鱼池、破釜沉舟、新世界、古老的信仰、士兵、生命权杖、知己知彼。游戏读到的画面与源图一致，普通卡框中可见。黄金杀戮仍为 384 宽。触碰洁净、窥视黑暗、免于恐惧的自由保持原有专图。
+- 先古稀有度继续使用游戏自己的先古卡框。事件场面和角色模型未在本次重做，联机未做全面验收。
 
 ## v0.4.10-alpha 军队生态
 
